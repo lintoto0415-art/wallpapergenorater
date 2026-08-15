@@ -62,11 +62,6 @@
 
             <!-- Header Action Controls -->
             <div class="flex items-center gap-3">
-                <button onclick="window.toggleApiKeyModal()" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 flex items-center gap-2 transition">
-                    <i class="fa-solid fa-key text-violet-400"></i>
-                    <span id="key-btn-text">API Key 設定</span>
-                </button>
-
                 <!-- Auth Status Indicator -->
                 <div id="auth-status-container" class="flex items-center gap-2">
                     <button onclick="window.toggleAuthModal()" class="px-3.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium shadow-md shadow-violet-600/30 flex items-center gap-2 transition">
@@ -225,7 +220,17 @@
                         <i class="fa-solid fa-user-gear text-cyan-400"></i> 3. 角色特徵與情境描繪 (Character Details)
                     </span>
                     <span class="text-[10px] text-slate-500 font-normal">提示：填寫越詳細，畫風還原度越高。</span>
-               
+                </label>
+
+                <!-- Quick IP Presets -->
+                <div class="space-y-1.5">
+                    <span class="text-[11px] text-slate-400">🔥 熱門作品快速標籤 (Quick IP Presets)：</span>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button onclick="window.applyIpTag('葬送的芙莉蓮', '芙莉蓮, 銀髮雙馬尾, 精靈耳, 白金邊精靈法袍')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:border-violet-500 hover:text-violet-300 transition">✨ 葬送的芙莉蓮</button>
+                        <button onclick="window.applyIpTag('原神', '雷電將軍, 紫色編髮長髮, 浮世胸花, 狐狸面具')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:border-violet-500 hover:text-violet-300 transition">⚡ 原神 (雷電將軍)</button>
+                        <button onclick="window.applyIpTag('崩壞：星穹鐵道', '銀狼, 灰紫色短捲髮雙馬尾, 高科技護目鏡')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:border-violet-500 hover:text-violet-300 transition">🚂 星穹鐵道 (銀狼)</button>
+                        <button onclick="window.applyIpTag('Vocaloid', '初音未來, 雙馬尾綠髮, 科技感發光髮飾')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:border-violet-500 hover:text-violet-300 transition">🎵 初音未來</button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -452,24 +457,6 @@
         </button>
     </div>
 
-    <!-- API Key Settings Modal -->
-    <div id="apikey-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="glass-panel max-w-md w-full rounded-2xl p-6 space-y-4 border border-slate-800" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
-                    <i class="fa-solid fa-key text-violet-400"></i> 設定自訂 Gemini API Key
-                </h3>
-                <button onclick="window.toggleApiKeyModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <p class="text-xs text-slate-400">若有私人 Google Gemini API Key 可填入此處（留空則自動使用預設金鑰）。</p>
-            <input id="custom-api-key-input" type="password" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-violet-500">
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="window.toggleApiKeyModal()" class="px-3 py-1.5 rounded-lg bg-slate-900 text-xs text-slate-400 hover:text-white">取消</button>
-                <button onclick="window.saveCustomApiKey()" class="px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold">儲存設定</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Firebase Auth Modal -->
     <div id="auth-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="glass-panel max-w-sm w-full rounded-2xl p-6 space-y-4 border border-slate-800" onclick="event.stopPropagation()">
@@ -507,7 +494,6 @@
             currentWallpaper: null,
             history: [],
             galleryFilter: 'all',
-            customApiKey: localStorage.getItem('gemini_custom_key') || '',
             user: null
         };
 
@@ -715,7 +701,7 @@
 
         // Main Wallpaper Generation Logic
         window.triggerGeneration = async function() {
-            const apiKey = window.state.customApiKey || "";
+            const apiKey = "";
 
             const ipInput = document.getElementById('ip-input').value.trim();
             const charInput = document.getElementById('character-input').value.trim();
@@ -903,7 +889,7 @@ ${explicitStyleDirectives}. Target Aspect Ratio: ${window.state.selectedRatio}.`
         };
 
         window.triggerMultiTurnEdit = async function() {
-            const apiKey = window.state.customApiKey || "";
+            const apiKey = "";
             const editPrompt = document.getElementById('edit-prompt-input').value.trim();
             if (!editPrompt || !window.state.currentWallpaper) {
                 alert("請輸入二次修改指示！");
@@ -1163,18 +1149,6 @@ ${explicitStyleDirectives}. Target Aspect Ratio: ${window.state.selectedRatio}.`
                 a.download = "my_favorite_wallpapers.zip";
                 a.click();
             });
-        };
-
-        window.toggleApiKeyModal = function() {
-            document.getElementById('apikey-modal').classList.toggle('hidden');
-        };
-
-        window.saveCustomApiKey = function() {
-            const key = document.getElementById('custom-api-key-input').value.trim();
-            window.state.customApiKey = key;
-            localStorage.setItem('gemini_custom_key', key);
-            document.getElementById('key-btn-text').innerText = key ? "API Key (已設定)" : "API Key 設定";
-            window.toggleApiKeyModal();
         };
 
         window.toggleAuthModal = function() {
