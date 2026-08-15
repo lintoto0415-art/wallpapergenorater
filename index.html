@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="zh-TW" class="dark h-full">
+<html lang="zh-TW" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔮 角色桌布生成器 | Character Wallpaper Generator</title>
+    <title>🔮 角色桌布生成器 - AI Character Wallpaper Generator</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
-extend: {
-colors: {
+                extend: {
+                    colors: {
                         brand: {
                             50: '#f5f3ff',
                             100: '#ede9fe',
@@ -20,1438 +20,529 @@ colors: {
                             700: '#6d28d9',
                             900: '#4c1d95',
                         }
-                        slate: { 850: '#0f172a', 950: '#020617' }
-}
-}
-}
+                    }
+                }
+            }
         }
-        };
-</script>
-<!-- FontAwesome Icons -->
+    </script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- JSZip for Batch Downloads -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- JSZip for Bulk Download -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <!-- Firebase SDK Modules -->
+    <!-- JSZip for Batch Downloading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', 'Microsoft JhengHei', sans-serif;
+            background-color: #020617; /* bg-slate-950 */
+            color: #f8fafc;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Mockup Overlay Styling */
+        .mockup-mobile-clock {
+            text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+        }
+        .mockup-desktop-icon {
+            backdrop-filter: blur(4px);
+            background: rgba(15, 23, 42, 0.4);
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .active-ring {
+            box-shadow: 0 0 0 2px #06b6d4, 0 0 15px rgba(6, 182, 212, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-violet-500 selection:text-white">
+
+    <!-- HEADER NAVBAR -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800 px-4 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-500 to-cyan-400 flex items-center justify-center text-xl shadow-lg shadow-violet-900/40">
+                    🔮
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight bg-gradient-to-r from-violet-200 via-cyan-200 to-white bg-clip-text text-transparent">
+                        角色桌布生成器
+                    </h1>
+                    <p class="text-xs text-slate-400">Character Wallpaper AI Generator</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons / User Info -->
+            <div class="flex items-center space-x-3">
+                <button onclick="window.toggleApiKeyModal()" class="px-3 py-1.5 text-xs font-medium bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-key text-amber-400"></i>
+                    <span id="api-key-btn-text">API Key 設定</span>
+                </button>
+                <div id="auth-status-container" class="flex items-center gap-2">
+                    <button onclick="window.toggleAuthModal()" class="px-3.5 py-1.5 text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition shadow-md shadow-violet-900/30 flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-astronaut"></i>
+                        <span id="user-display-name">登入 / 註冊</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-8">
+
+        <!-- SECTION 1: 桌布生成設定與風格軸線 (Top Controls) -->
+        <section class="glass-panel rounded-2xl p-5 lg:p-7 space-y-6 shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-24 -right-24 w-64 h-64 bg-violet-600/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-cyan-400"></i> 桌布參數與視覺設定
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">選擇理想畫風、長寬比例與角色細節，AI 將自動生成高清手繪質感桌布</p>
+                </div>
+                <!-- Randomizer Button -->
+                <button onclick="window.triggerRandomizer()" class="self-start md:self-auto px-4 py-2 text-xs font-semibold bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white rounded-xl transition shadow-lg flex items-center gap-2">
+                    <i class="fa-solid fa-dice-five text-amber-300 animate-spin-slow"></i>
+                    <span>🎲 靈感抽卡 (一鍵隨機組合)</span>
+                </button>
+            </div>
+
+            <form id="wallpaper-form" onsubmit="event.preventDefault(); window.triggerGeneration();" class="space-y-6">
+                
+                <!-- 1. 比例與參考圖 (Aspect Ratio & Ref Image) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Aspect Ratio Selector -->
+                    <div class="md:col-span-2 space-y-2">
+                        <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-crop text-violet-400"></i> 桌布尺寸比例 (Aspect Ratio)
+                        </label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <button type="button" onclick="window.selectRatio('9:16')" id="ratio-btn-916" class="ratio-btn p-3 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 transition text-center flex flex-col items-center justify-center gap-1.5 active-ring">
+                                <i class="fa-solid fa-mobile-screen text-lg text-cyan-400"></i>
+                                <span class="text-xs font-bold text-white">手機桌布 (9:16)</span>
+                                <span class="text-[10px] text-slate-400">1080 × 1920</span>
+                            </button>
+                            <button type="button" onclick="window.selectRatio('16:9')" id="ratio-btn-169" class="ratio-btn p-3 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 transition text-center flex flex-col items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-display text-lg text-indigo-400"></i>
+                                <span class="text-xs font-bold text-white">電腦螢幕 (16:9)</span>
+                                <span class="text-[10px] text-slate-400">1920 × 1080</span>
+                            </button>
+                            <button type="button" onclick="window.selectRatio('4:3')" id="ratio-btn-43" class="ratio-btn p-3 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 transition text-center flex flex-col items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-tablet-screen-button text-lg text-emerald-400"></i>
+                                <span class="text-xs font-bold text-white">平板裝置 (4:3)</span>
+                                <span class="text-[10px] text-slate-400">2048 × 1536</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Reference Image Upload (Image-to-Image Character Lock) -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-image text-rose-400"></i> 角色參考圖 (圖片鎖定)
+                            </span>
+                            <span class="text-[10px] text-slate-400">選填 (Image-to-Image)</span>
+                        </label>
+                        <div id="ref-image-dropzone" class="relative border-2 border-dashed border-slate-700 hover:border-violet-500 bg-slate-900/50 rounded-xl p-3 text-center transition cursor-pointer flex flex-col items-center justify-center min-h-[105px]">
+                            <input type="file" id="ref-image-input" accept="image/*" class="hidden" onchange="window.handleRefImageUpload(event)">
+                            <div id="ref-image-placeholder" class="space-y-1">
+                                <i class="fa-solid fa-cloud-arrow-up text-xl text-slate-400"></i>
+                                <p class="text-xs font-medium text-slate-300">點擊或拖拽上傳角色圖片</p>
+                                <p class="text-[10px] text-slate-500">💡 建議單人、高清立繪，自動進行特徵鎖定</p>
+                            </div>
+                            <div id="ref-image-preview-container" class="hidden relative w-full h-24 flex items-center justify-center">
+                                <img id="ref-image-preview" class="h-full max-w-full object-contain rounded-lg border border-cyan-500/50 shadow-md">
+                                <button type="button" onclick="window.removeRefImage(event)" class="absolute -top-2 -right-2 w-6 h-6 bg-rose-600 hover:bg-rose-500 text-white rounded-full flex items-center justify-center text-xs shadow-md">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                                <span class="absolute bottom-1 left-2 bg-slate-900/90 text-cyan-400 text-[10px] px-2 py-0.5 rounded border border-cyan-500/30 font-semibold">
+                                    🔒 特徵鎖定中
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 原作與角色設定 (IP & Character Trait) -->
+                <div class="space-y-3">
+                    <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-mask text-amber-400"></i> 作品與角色描述 (IP & Character Details)
+                    </label>
+                    
+                    <!-- Quick IP Tags -->
+                    <div class="flex flex-wrap gap-1.5 text-xs">
+                        <span class="text-slate-400 py-1 text-[11px]">熱門快選：</span>
+                        <button type="button" onclick="window.setIP('葬送的芙莉蓮', '芙莉蓮')" class="px-2.5 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px]">🌸 芙莉蓮</button>
+                        <button type="button" onclick="window.setIP('原神', '雷電將軍')" class="px-2.5 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px]">⚡ 雷電將軍</button>
+                        <button type="button" onclick="window.setIP('崩壞：星穹鐵道', '流螢')" class="px-2.5 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px]">🟢 流螢</button>
+                        <button type="button" onclick="window.setIP('絕區零', '艾蓮·喬')" class="px-2.5 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px]">🦈 艾蓮</button>
+                        <button type="button" onclick="window.setIP('VOCALOID', '初音未來')" class="px-2.5 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px]">🎵 初音未來</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <input type="text" id="ip-input" placeholder="原作/IP 名稱 (例: 葬送的芙莉蓮, 原神, 賽博朋克:邊緣行者)" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition">
+                        </div>
+                        <div>
+                            <input type="text" id="character-input" placeholder="角色名稱與外貌特徵 (例: 芙莉蓮, 銀髮雙馬尾, 精靈耳, 白金邊魔法袍)" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 四維風格軸線 (4D Style Axes) -->
+                <div class="space-y-4 pt-2">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-palette text-violet-400"></i> 四維視覺風格軸線 (4D Design Axes)
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- Axis 1: Art Style -->
+                        <div class="space-y-1.5">
+                            <label class="text-[11px] font-semibold text-slate-300">1. 畫風材質 (Art Style)</label>
+                            <select id="select-artstyle" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500">
+                                <option value="key_visual">🎬 動漫原畫 (Key Visual - 官方海報線條與典雅上色)</option>
+                                <option value="watercolor">🎨 柔和水彩 (Watercolor - 手繪透亮質感與紙張紋理)</option>
+                                <option value="cell_shading">🖋️ 賽璐珞 (Cell-Shading - 動畫原畫大塊面明快陰影)</option>
+                                <option value="painterly">🌌 典雅厚塗 (Impasto - 筆觸濃郁立體藝術感)</option>
+                                <option value="cyber_neon">⚡ 賽博霓虹 (Cyber Neon - 高對比度發光視覺)</option>
+                                <option value="retro_film">📼 復古90年代 (90s Anime - 賽璐珞顆粒底片感)</option>
+                                <option value="ink_wash">🖌️ 水墨風骨 (Ink Wash - 飛白寫意東方韻味)</option>
+                                <option value="pixel_art">👾 精緻點陣像素 (Pixel Art - 高解析度像素風)</option>
+                            </select>
+                        </div>
+
+                        <!-- Axis 2: Framing / Composition -->
+                        <div class="space-y-1.5">
+                            <label class="text-[11px] font-semibold text-slate-300">2. 鏡頭構圖 (Framing)</label>
+                            <select id="select-camera" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500">
+                                <option value="rule_of_thirds">📐 三分法構圖 (Rule of Thirds - 自然視覺重心)</option>
+                                <option value="symmetrical">⚖️ 對稱構圖 (Symmetrical - 莊嚴安定儀式感)</option>
+                                <option value="diagonal">↗️ 對角線構圖 (Diagonal - 強烈動態視覺延伸)</option>
+                                <option value="center_framed">🎯 中心/框架構圖 (Center/Framed - 前景自然聚焦)</option>
+                                <option value="dutch_angle">📐 荷蘭角/低仰角 (Dutch Angle - 英雄張力透視)</option>
+                                <option value="close_up">👁️ 面部/眼睛特寫 (Close-Up Portrait - 神情情感描繪)</option>
+                                <option value="wide_space">🌄 鏡頭大遠景 (Cinematic Wide - 桌面留白最佳)</option>
+                            </select>
+                        </div>
+
+                        <!-- Axis 3: Lighting Atmosphere -->
+                        <div class="space-y-1.5">
+                            <label class="text-[11px] font-semibold text-slate-300">3. 光影氣氛 (Lighting)</label>
+                            <select id="select-lighting" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500">
+                                <option value="golden_hour">🌅 黃昏逆光 (Golden Hour - 夢幻溫暖金色晨曦)</option>
+                                <option value="neon_cyber">🏙️ 霓虹賽博 (Neon Cyber - 冷暖交織夜間科技感)</option>
+                                <option value="soft_diffused">☁️ 柔光漫射 (Soft Diffused - 舒適不刺眼自然光)</option>
+                                <option value="dramatic">⚡ 強烈戲劇光 (Dramatic High-Contrast - 張力招式光束)</option>
+                                <option value="moonlight">🌙 寂靜月光/星空 (Moonlight - 深藍冷色神秘夜光)</option>
+                                <option value="bioluminescent">🔮 螢光/自發光 (Glow - 魔法粒子浪漫夜景)</option>
+                                <option value="crepuscular">☀️ 丁達爾聖光 (Tyndall - 穿透雲霧耶穌光)</option>
+                            </select>
+                        </div>
+
+                        <!-- Axis 4: Background Complexity -->
+                        <div class="space-y-1.5">
+                            <label class="text-[11px] font-semibold text-slate-300">4. 背景場景 (Background)</label>
+                            <select id="select-bg" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500">
+                                <option value="nature">🌸 季節自然/櫻花雪景 (Nature & Blossoms)</option>
+                                <option value="cyber_city">🏙️ 未來賽博都市 (Cyberpunk Cityscape)</option>
+                                <option value="fantasy_magic">🔮 魔法粒子/空間特效 (Fantasy Magic)</option>
+                                <option value="minimalist">🌌 幾何極簡/攝影棚 (Minimalist Studio)</option>
+                                <option value="school_life">🏫 校園/日常街景 (School & Slice of Life)</option>
+                                <option value="deep_space">🌌 深空星雲 (Deep Space Nebula)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. 動作與細節描述 (Action & Props) -->
+                <div class="space-y-2 pt-1">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-person-running text-cyan-400"></i> 動態姿態與核心元素 (Action & Props)
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label for="action-input" class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fa-solid fa-clapperboard text-indigo-400"></i> 角色動作與場景情境
+                                </span>
+                                <span class="text-[10px] text-slate-400">肢體姿態、表情、所在環境</span>
+                            </label>
+                            <input type="text" id="action-input" placeholder="例：坐在雨中的廢墟街頭、飛躍在夜空、揮舞魔法杖施法、閉眼微笑" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition">
+                            <p class="text-[10px] text-slate-500 flex items-center gap-1">
+                                💡 <span class="text-slate-400">描繪角色的姿勢（站/坐/飛）、表情神情，以及身處的地方。</span>
+                            </p>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label for="elem-input" class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fa-solid fa-wand-magic text-amber-400"></i> 核心元素、道具與視覺特效
+                                </span>
+                                <span class="text-[10px] text-slate-400">手持武器、周圍粒子、氣候</span>
+                            </label>
+                            <input type="text" id="elem-input" placeholder="例：飄浮的藍色火焰、漫天櫻花瓣、雷電交錯光芒、雨水折射霓虹" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition">
+                            <p class="text-[10px] text-slate-500 flex items-center gap-1">
+                                💡 <span class="text-slate-400">補充手上的專屬道具、氣氛配件（花瓣/雪花/光粒/火焰/氣流）等特寫元素。</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="generate-submit-btn" class="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:from-violet-500 hover:via-indigo-500 hover:to-cyan-400 text-white font-bold text-base shadow-xl shadow-violet-900/40 hover:shadow-cyan-900/40 transition transform active:scale-[0.99] flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-300 text-lg"></i>
+                    <span>✨ 一鍵生成高解析度角色桌布</span>
+                </button>
+
+            </form>
+        </section>
+
+        <!-- SECTION 2: 下半部：即時預覽與二次微調 (Bottom Live Preview Stage) -->
+        <section class="glass-panel rounded-2xl p-5 lg:p-7 space-y-6 shadow-2xl relative">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div class="flex items-center gap-3">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-tv text-cyan-400"></i> 即時桌面展示台 & 實機試套
+                    </h2>
+                    <span id="preview-status-tag" class="hidden px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <i class="fa-solid fa-check"></i> 已就緒
+                    </span>
+                </div>
+
+                <!-- Overlay Toggle Controls -->
+                <div class="flex items-center gap-2 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs">
+                    <button type="button" onclick="window.setOverlay('none')" id="overlay-btn-none" class="px-2.5 py-1 rounded-lg font-medium text-slate-300 bg-slate-800 shadow">
+                        無疊加
+                    </button>
+                    <button type="button" onclick="window.setOverlay('mobile')" id="overlay-btn-mobile" class="px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:text-slate-200">
+                        📱 手機鎖屏
+                    </button>
+                    <button type="button" onclick="window.setOverlay('desktop')" id="overlay-btn-desktop" class="px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:text-slate-200">
+                        💻 電腦桌面
+                    </button>
+                </div>
+            </div>
+
+            <!-- Progress Bar Loading Tracker -->
+            <div id="progress-container" class="hidden space-y-2 py-4">
+                <div class="flex justify-between text-xs font-semibold">
+                    <span id="progress-step-text" class="text-violet-300">【1/3】 Gemini 正在構思角色細節與重構 Prompt...</span>
+                    <span id="progress-detail-text" class="text-slate-400">請稍候 8-15 秒</span>
+                </div>
+                <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                    <div id="progress-bar" class="h-full bg-gradient-to-r from-violet-500 via-indigo-500 to-cyan-400 rounded-full w-1/12 transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- Display Stage Area -->
+            <div id="preview-viewport" class="relative w-full rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center min-h-[450px] lg:min-h-[580px] shadow-inner transition-all">
+                
+                <!-- Initial Placeholder State -->
+                <div id="preview-empty-state" class="text-center space-y-3 p-8 max-w-md">
+                    <div class="w-20 h-20 mx-auto rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-3xl text-violet-400 shadow-xl">
+                        🖼️
+                    </div>
+                    <h3 class="text-base font-bold text-slate-200">桌布將在此高畫質渲染</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        在上方設定好角色名稱、選擇 9:16 或 16:9 尺寸，點擊「一鍵生成高解析度角色桌布」即可生成手繪質感桌布。
+                    </p>
+                </div>
+
+                <!-- Generated Image Display -->
+                <img id="preview-image" class="hidden max-h-[75vh] w-auto object-contain rounded-lg shadow-2xl transition duration-500" alt="Generated Wallpaper">
+
+                <!-- Mockup Overlay: Mobile Lockscreen -->
+                <div id="mockup-mobile-overlay" class="hidden pointer-events-none absolute inset-0 flex flex-col justify-between p-8 text-white z-10">
+                    <div class="text-center space-y-1 pt-6">
+                        <div class="text-xs font-medium tracking-widest text-slate-200 uppercase">星期四 8月13日</div>
+                        <div class="text-6xl font-light tracking-tight mockup-mobile-clock">09:41</div>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-slate-300 px-4 pb-2">
+                        <i class="fa-solid fa-camera"></i>
+                        <div class="w-32 h-1 bg-white/80 rounded-full mx-auto"></div>
+                        <i class="fa-solid fa-flashlight"></i>
+                    </div>
+                </div>
+
+                <!-- Mockup Overlay: Desktop Icons -->
+                <div id="mockup-desktop-overlay" class="hidden pointer-events-none absolute inset-0 flex flex-col justify-between p-4 z-10">
+                    <div class="grid grid-cols-1 gap-3 w-16 text-center text-[10px] text-white">
+                        <div class="mockup-desktop-icon p-2 rounded-xl border border-white/10 flex flex-col items-center">
+                            <i class="fa-solid fa-hard-drive text-cyan-400 text-lg mb-1"></i>
+                            <span>本機電腦</span>
+                        </div>
+                        <div class="mockup-desktop-icon p-2 rounded-xl border border-white/10 flex flex-col items-center">
+                            <i class="fa-solid fa-folder text-amber-400 text-lg mb-1"></i>
+                            <span>桌布作品</span>
+                        </div>
+                        <div class="mockup-desktop-icon p-2 rounded-xl border border-white/10 flex flex-col items-center">
+                            <i class="fa-solid fa-trash text-rose-400 text-lg mb-1"></i>
+                            <span>回收桶</span>
+                        </div>
+                    </div>
+                    <div class="mockup-desktop-icon h-10 w-full rounded-xl border border-white/10 flex items-center justify-between px-4 text-xs text-slate-300">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-brands fa-windows text-cyan-400 text-base"></i>
+                            <span class="text-[11px] text-slate-400">搜尋桌面...</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400">下午 09:41</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Toolbar & Action Buttons -->
+            <div id="preview-actions" class="hidden flex flex-wrap items-center justify-between gap-3 pt-2">
+                <div class="flex items-center gap-2">
+                    <button onclick="window.openLightbox()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-expand text-cyan-400"></i> 全螢幕放大
+                    </button>
+                    <button onclick="window.copyPrompt()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-copy text-violet-400"></i> 複製 Prompt
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button id="favorite-toggle-btn" onclick="window.toggleFavoriteCurrent()" class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-semibold transition flex items-center gap-1.5">
+                        <i class="fa-regular fa-heart"></i> 加入收藏
+                    </button>
+                    <button onclick="window.downloadCurrentWallpaper()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-md shadow-emerald-900/30 flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i> 下載高解析度桌布
+                    </button>
+                </div>
+            </div>
+
+            <!-- Multi-Turn Second Stage Refinement (二段圖面微調) -->
+            <div id="multi-turn-container" class="hidden pt-4 border-t border-slate-800 space-y-3">
+                <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-wand-line text-cyan-400"></i> 二段圖面微調 (基於第一版圖片進行修改)
+                </label>
+                <div class="flex gap-2">
+                    <input type="text" id="edit-prompt-input" placeholder="對第一版圖片進行微調 (例: 將背景改成雪景、讓角色閉上眼睛微笑、加上飄逸的黑色斗篷)" class="flex-grow bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition">
+                    <button onclick="window.triggerMultiTurnEdit()" id="edit-submit-btn" class="px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="fa-solid fa-rotate text-amber-300"></i>
+                        <span>套用二段修改</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: 底部：作品藝廊與雲端同步 (Gallery & Cloud Sync) -->
+        <section class="glass-panel rounded-2xl p-5 lg:p-7 space-y-5 shadow-2xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                <div class="flex items-center space-x-2">
+                    <button onclick="window.switchTab('history')" id="tab-btn-history" class="px-4 py-2 rounded-xl text-xs font-bold transition bg-violet-600 text-white shadow">
+                        🖼️ 生成歷史紀錄
+                    </button>
+                    <button onclick="window.switchTab('favorites')" id="tab-btn-favorites" class="px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-400 hover:text-white">
+                        ❤️ 我的收藏夾
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="window.exportFavoritesZip()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition flex items-center gap-1">
+                        <i class="fa-solid fa-file-zipper text-cyan-400"></i> 打包下載收藏 (.zip)
+                    </button>
+                    <button onclick="window.clearHistoryPrompt()" class="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-medium border border-rose-500/20 transition">
+                        <i class="fa-solid fa-trash"></i> 清空紀錄
+                    </button>
+                </div>
+            </div>
+
+            <!-- Gallery Grid -->
+            <div id="gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 min-h-[150px]">
+                <!-- Dynamic Items Inserted via JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500 space-y-1">
+        <p>@2026 hong Xiuquan | 創作者: 洪秀全</p>
+        <p class="text-[11px] text-slate-600">Powered by Gemini AI Engine & Firebase Cloud Serverless</p>
+    </footer>
+
+    <!-- MODAL 1: API Key Settings -->
+    <div id="api-key-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full rounded-2xl p-6 space-y-4 border border-slate-700 shadow-2xl relative">
+            <button onclick="window.toggleApiKeyModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white">設定 Gemini API Key</h3>
+                    <p class="text-xs text-slate-400">輸入自訂 API Key 可解除調用頻率限制</p>
+                </div>
+            </div>
+            <div class="space-y-2 pt-2">
+                <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500">
+                <p class="text-[11px] text-slate-500">可在 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-cyan-400 underline">Google AI Studio</a> 免費取得 API 金鑰。</p>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="window.saveApiKey()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md">
+                    儲存 API Key
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Firebase Auth Modal -->
+    <div id="auth-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full rounded-2xl p-6 space-y-4 border border-slate-700 shadow-2xl relative">
+            <button onclick="window.toggleAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center space-y-1">
+                <h3 class="text-lg font-bold text-white">會員登入 / 註冊</h3>
+                <p class="text-xs text-slate-400">登入後可同步跨裝置歷史紀錄與收藏夾</p>
+            </div>
+            <form onsubmit="event.preventDefault(); window.handleEmailAuth();" class="space-y-3 pt-2">
+                <input type="email" id="auth-email-input" placeholder="電子郵件 (Email)" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500">
+                <input type="password" id="auth-password-input" placeholder="密碼 (Password)" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500">
+                
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button type="submit" onclick="window.authMode = 'login'" class="py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs">
+                        登入帳號
+                    </button>
+                    <button type="submit" onclick="window.authMode = 'register'" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700">
+                        註冊新帳號
+                    </button>
+                </div>
+            </form>
+            <div class="border-t border-slate-800 pt-3 text-center">
+                <button onclick="window.handleAnonymousLogin()" class="text-xs text-cyan-400 hover:underline">
+                    ⚡ 快速匿名試用登入
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Lightbox Fullscreen Modal -->
+    <div id="lightbox-modal" class="hidden fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4">
+        <button onclick="window.closeLightbox()" class="absolute top-5 right-5 text-slate-300 hover:text-white text-2xl z-10 bg-slate-900/80 w-10 h-10 rounded-full flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <img id="lightbox-image" class="max-h-[92vh] max-w-[92vw] object-contain rounded-lg shadow-2xl">
+    </div>
+
+    <!-- FIREBASE MODULE & APPLICATION LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Config from PRD Specification
-        const firebaseConfig = {
-            apiKey: "AIzaSyCJVUQ3pCAPlBVOOzFDJQpub3c0xDyn4bc",
-            authDomain: "backgroundgenorater.firebaseapp.com",
-            projectId: "backgroundgenorater",
-            storageBucket: "backgroundgenorater.firebasestorage.app",
-            messagingSenderId: "556681208128",
-            appId: "1:556681208128:web:5f9132f615026cb70a9aa5"
-        };
-
-        const firebaseApp = initializeApp(firebaseConfig);
-        const auth = getAuth(firebaseApp);
-        const db = getFirestore(firebaseApp);
-
-        window.firebaseAuth = auth;
-        window.firebaseDb = db;
-        window.firebaseMethods = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, collection, doc, setDoc, getDocs, deleteDoc };
-    </script>
-
-<style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', 'Microsoft JhengHei', sans-serif; }
-        /* Custom scrollbars */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #020617; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-        
-        .backdrop-blur-md { backdrop-filter: blur(12px); }
-.glass-panel {
-background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(12px);
-            backdrop-filter: blur(16px);
-border: 1px solid rgba(255, 255, 255, 0.08);
-}
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
-</style>
-</head>
-<body class="bg-slate-950 text-slate-100 min-h-full flex flex-col selection:bg-violet-500 selection:text-white">
-
-    <!-- Header Navigation -->
-    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-4 py-3">
-<body class="bg-slate-950 text-slate-100 min-h-full flex flex-col font-sans selection:bg-violet-500 selection:text-white">
-
-    <!-- Top Navigation Header -->
-    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3">
-<div class="max-w-7xl mx-auto flex items-center justify-between">
-<div class="flex items-center gap-3">
-<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-cyan-400 flex items-center justify-center text-xl shadow-lg shadow-violet-500/20">
-🔮
-</div>
-<div>
-                    <h1 class="text-lg font-bold bg-gradient-to-r from-violet-300 via-cyan-200 to-white bg-clip-text text-transparent">角色桌布生成器</h1>
-                    <p class="text-xs text-slate-400">Character Wallpaper Generator</p>
-                    <h1 class="font-bold text-lg leading-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                        角色桌布生成器
-                    </h1>
-                    <p class="text-[11px] text-slate-400 flex items-center gap-2">
-                        <span>Character Wallpaper Generator</span>
-                        <span class="text-slate-600">•</span>
-                        <span class="text-cyan-400">v2026.04</span>
-                    </p>
-</div>
-</div>
-
-            <!-- User Auth & Quick Actions -->
-            <!-- Header Action Controls -->
-<div class="flex items-center gap-3">
-                <button onclick="window.triggerRandomizer()" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-medium border border-cyan-500/30 transition-all">
-                    <i class="fa-solid fa-dice text-cyan-400"></i>
-                    <span>🎲 靈感抽卡</span>
-                </button>
-
-                <button onclick="window.toggleApiKeyModal()" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition">
-                    <i class="fa-solid fa-key text-amber-400 mr-1"></i>
-                <button onclick="window.toggleApiKeyModal()" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 flex items-center gap-2 transition">
-                    <i class="fa-solid fa-key text-violet-400"></i>
-<span id="key-btn-text">API Key 設定</span>
-</button>
-
-                <div id="auth-status-container">
-                    <button onclick="window.toggleAuthModal()" class="px-3.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium shadow-md shadow-violet-600/30 transition">
-                        <i class="fa-solid fa-user mr-1.5"></i>
-                        <span id="user-display-name">登入 / 試用</span>
-                <!-- Auth Status Indicator -->
-                <div id="auth-status-container" class="flex items-center gap-2">
-                    <button onclick="window.toggleAuthModal()" class="px-3.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium shadow-md shadow-violet-600/30 flex items-center gap-2 transition">
-                        <i class="fa-solid fa-user"></i>
-                        <span id="user-display-name">會員登入</span>
-</button>
-</div>
-</div>
-</div>
-</header>
-
-    <!-- Main Content Area -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
-    <!-- Main Content Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 space-y-8">
-
-        <!-- UPPER SECTION: Generation Controls Panel -->
-        <section class="glass-panel rounded-2xl p-5 md:p-6 shadow-xl relative overflow-hidden">
-            <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-sliders text-violet-400"></i>
-                    <h2 class="text-base font-semibold text-slate-100">桌布視覺與風格參數設定</h2>
-        <!-- ================= TOP HALF: GENERATION CONFIGURATION PANEL ================= -->
-        <section class="glass-panel rounded-2xl p-5 lg:p-6 shadow-2xl space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-                <div>
-                    <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-violet-400"></i>
-                        桌布生成設定 (Generation Controls)
-                    </h2>
-                    <p class="text-xs text-slate-400 mt-0.5">客製化角色的畫風、構圖、光影氣氛與細節，一鍵生成高清桌面桌布。</p>
-</div>
-                <button onclick="window.triggerRandomizer()" class="sm:hidden flex items-center gap-1.5 text-xs text-cyan-400 bg-cyan-950/50 px-2.5 py-1 rounded border border-cyan-800">
-                    <i class="fa-solid fa-dice"></i> 靈感抽卡
-                <!-- Randomizer Button -->
-                <button onclick="window.triggerRandomizer()" class="self-start sm:self-auto px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600/80 to-violet-600/80 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-medium border border-violet-400/30 shadow-lg shadow-indigo-500/20 flex items-center gap-2 transition">
-                    <i class="fa-solid fa-dice text-cyan-300 animate-spin-slow"></i>
-                    <span>🎲 靈感抽卡 (Randomizer)</span>
-</button>
-</div>
-
-            <form id="wallpaper-form" onsubmit="event.preventDefault(); window.triggerGeneration();" class="space-y-5">
-                
-                <!-- Aspect Ratio Selector -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-2">
-                        <i class="fa-solid fa-expand text-cyan-400 mr-1"></i> 選擇桌布尺寸比例 (Aspect Ratio)
-                    </label>
-                    <div class="grid grid-cols-3 gap-3">
-                        <button type="button" onclick="window.setRatio('9:16')" id="ratio-btn-916" class="ratio-btn py-2.5 px-3 rounded-xl border border-cyan-500/50 bg-cyan-950/30 text-cyan-300 flex items-center justify-center gap-2 text-xs font-medium transition">
-                            <i class="fa-solid fa-mobile-screen"></i>
-                            <span>手機 (9:16)</span>
-                        </button>
-                        <button type="button" onclick="window.setRatio('16:9')" id="ratio-btn-169" class="ratio-btn py-2.5 px-3 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 flex items-center justify-center gap-2 text-xs font-medium transition">
-                            <i class="fa-solid fa-desktop"></i>
-                            <span>電腦 (16:9)</span>
-                        </button>
-                        <button type="button" onclick="window.setRatio('4:3')" id="ratio-btn-43" class="ratio-btn py-2.5 px-3 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 flex items-center justify-center gap-2 text-xs font-medium transition">
-                            <i class="fa-solid fa-tablet-screen"></i>
-                            <span>平板 (4:3)</span>
-                        </button>
-                    </div>
-            <!-- 1. Aspect Ratio Selector -->
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-expand text-cyan-400"></i> 1. 桌布尺寸與比例 (Aspect Ratio)
-                </label>
-                <div class="grid grid-cols-3 gap-3">
-                    <button id="ratio-btn-916" onclick="window.setRatio('9:16')" class="ratio-btn border border-cyan-500/50 bg-cyan-950/30 text-cyan-300 rounded-xl p-3 flex flex-col items-center justify-center gap-1 transition">
-                        <i class="fa-solid fa-mobile-screen-button text-lg"></i>
-                        <span class="text-xs font-bold">手機 (9:16)</span>
-                        <span class="text-[10px] text-slate-400">1080 x 1920</span>
-                    </button>
-                    <button id="ratio-btn-169" onclick="window.setRatio('16:9')" class="ratio-btn border border-slate-800 bg-slate-900/60 text-slate-400 rounded-xl p-3 flex flex-col items-center justify-center gap-1 transition hover:border-slate-700">
-                        <i class="fa-solid fa-desktop text-lg"></i>
-                        <span class="text-xs font-bold">電腦 (16:9)</span>
-                        <span class="text-[10px] text-slate-500">1920 x 1080</span>
-                    </button>
-                    <button id="ratio-btn-43" onclick="window.setRatio('4:3')" class="ratio-btn border border-slate-800 bg-slate-900/60 text-slate-400 rounded-xl p-3 flex flex-col items-center justify-center gap-1 transition hover:border-slate-700">
-                        <i class="fa-solid fa-tablet-screen-button text-lg"></i>
-                        <span class="text-xs font-bold">平板 (4:3)</span>
-                        <span class="text-[10px] text-slate-500">2048 x 1536</span>
-                    </button>
-</div>
-            </div>
-
-                <!-- 4D Style Axes Section -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
-                    
-                    <!-- Axis 1: Art Style & Medium -->
-                    <div>
-                        <label class="block text-xs font-semibold text-violet-300 mb-1.5">
-                            <i class="fa-solid fa-palette text-violet-400 mr-1"></i> 畫風與材質質感
-                        </label>
-                        <select id="select-artstyle" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-violet-500">
-                            <option value="key_visual" selected>🎨 動漫原畫 Key Visual (手繪細節)</option>
-                            <option value="watercolor">🖌️ 柔和水彩 Soft Watercolor (透亮紋理)</option>
-                            <option value="cel_shading">🖋️ 賽璐珞 Cell-Shading (動畫塊面)</option>
-                            <option value="painterly">🌌 典雅厚塗 Painterly Impasto (豐富光影)</option>
-                            <option value="retro_90s">📼 復古 90 年代 Retro Anime (經典膠捲)</option>
-                            <option value="cyber_pop">⚡ 賽博霓虹 Cyber Pop (強烈對比)</option>
-                            <option value="ink_wash">🖌️ 水墨風骨 Ink Wash (寫意飛白)</option>
-                            <option value="pixel_art">👾 精緻點陣 Pixel Art (高畫質像素)</option>
-            <!-- 2. Four-Dimensional Style Axes (四維風格軸線) -->
-            <div class="space-y-4 pt-2">
-                <label class="block text-xs font-semibold text-slate-300 flex items-center gap-2">
-                    <i class="fa-solid fa-palette text-violet-400"></i> 2. 四維視覺風格參數 (4D Visual Style Axes)
-                </label>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- Art Style & Medium -->
-                    <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3 space-y-1.5">
-                        <label class="text-[11px] font-medium text-slate-300 block">🎨 畫風質感 (Art Medium)</label>
-                        <select id="select-artstyle" class="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 p-2 focus:border-violet-500 outline-none">
-                            <option value="key_visual">🎬 動漫原畫 (Key Visual) - 官方動畫質感</option>
-                            <option value="watercolor">🎨 柔和水彩 (Watercolor) - 紙張質感邊緣</option>
-                            <option value="cel_shading">🖋️ 賽璐珞 (Cell-Shading) - 俐落區塊陰影</option>
-                            <option value="painterly">🌌 典雅厚塗 (Painterly) - 濃郁筆觸光影</option>
-                            <option value="cyber_pop">⚡ 賽博霓虹 Pop - 飽和極致光效</option>
-                            <option value="vintage_90s">📼 復古 90 年代 - 底片膠捲顆粒感</option>
-                            <option value="ink_wash">🖌️ 水墨風骨 - 飛白線條寫意</option>
-                            <option value="pixel_art">👾 精緻點陣像素 - 像素電玩風</option>
-</select>
-                        <p class="text-[10px] text-slate-400 mt-1">※ 全面預設強化手繪觸感與自然質感</p>
-                        <p class="text-[10px] text-slate-500">影響畫面繪製筆觸與上色質感表現。</p>
-</div>
-
-                    <!-- Axis 2: Composition & Framing -->
-                    <div>
-                        <label class="block text-xs font-semibold text-cyan-300 mb-1.5">
-                            <i class="fa-solid fa-crop text-cyan-400 mr-1"></i> 鏡頭構圖
-                        </label>
-                        <select id="select-camera" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
-                            <option value="rule_of_thirds" selected>📐 三分法構圖 Rule of Thirds</option>
-                            <option value="symmetrical">⚖️ 對稱構圖 Symmetrical</option>
-                            <option value="diagonal">↗️ 對角線構圖 Diagonal Dynamic</option>
-                            <option value="framed">🎯 中心/框架構圖 Framed View</option>
-                            <option value="dutch_angle">📐 荷蘭角/傾斜仰角 Dutch Angle</option>
-                            <option value="portrait_close">👁️ 面部/眼睛特寫 Portrait Close-up</option>
-                            <option value="cinematic_space">🌄 桌面留白大遠景 Cinematic Space</option>
-                    <!-- Camera & Framing -->
-                    <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3 space-y-1.5">
-                        <label class="text-[11px] font-medium text-slate-300 block">📐 鏡頭構圖 (Camera Framing)</label>
-                        <select id="select-camera" class="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 p-2 focus:border-violet-500 outline-none">
-                            <option value="rule_of_thirds">📐 三分法構圖 (Rule of Thirds)</option>
-                            <option value="symmetrical">⚖️ 對稱構圖 (Symmetrical)</option>
-                            <option value="diagonal">↗️ 對角線構圖 (Diagonal Dynamic)</option>
-                            <option value="framed">🎯 中心/框架構圖 (Center Framed)</option>
-                            <option value="dutch_angle">📐 荷蘭角/英雄仰角 (Dynamic Low Angle)</option>
-                            <option value="close_up">👁️ 面部/眼睛特寫 (Portrait Close-up)</option>
-                            <option value="cinematic_space">🌄 遠景/環境優先 (Wide Environment)</option>
-</select>
-                        <p class="text-[10px] text-slate-400 mt-1">※ 決定主角於桌面的視覺定位</p>
-                        <p class="text-[10px] text-slate-500">決定主體置放位置與桌面留白。</p>
-</div>
-
-                    <!-- Axis 3: Lighting & Atmosphere -->
-                    <div>
-                        <label class="block text-xs font-semibold text-amber-300 mb-1.5">
-                            <i class="fa-solid fa-sun text-amber-400 mr-1"></i> 光影與氣氛
-                        </label>
-                        <select id="select-lighting" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
-                            <option value="golden_hour" selected>🌅 黃昏逆光 Golden Hour</option>
-                            <option value="neon_cyber">🏙️ 霓虹賽博 Neon Cyberpunk</option>
-                            <option value="soft_diffused">☁️ 柔光漫射 Soft Diffused</option>
-                            <option value="dramatic_shadow">⚡ 強烈戲劇光 Dramatic Shadow</option>
-                            <option value="night_moon">🌙 寂靜月光 Night Moonlight</option>
-                            <option value="bioluminescent">🔮 螢光/自發光 Bioluminescent</option>
-                            <option value="god_rays">☀️ 丁達爾聖光 Tyndall Rays</option>
-                    <!-- Lighting & Ambiance -->
-                    <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3 space-y-1.5">
-                        <label class="text-[11px] font-medium text-slate-300 block">💡 光影氣氛 (Lighting Ambiance)</label>
-                        <select id="select-lighting" class="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 p-2 focus:border-violet-500 outline-none">
-                            <option value="golden_hour">🌅 黃昏逆光 (Golden Hour Backlight)</option>
-                            <option value="neon_cyber">🏙️ 霓虹賽博 (Neon Cyberpunk Night)</option>
-                            <option value="soft_diffused">☁️ 柔光漫射 (Soft Natural Lighting)</option>
-                            <option value="dramatic_shadow">⚡ 強烈戲劇光 (Dramatic Shadow)</option>
-                            <option value="moonlight">🌙 寂靜月光 (Serene Moonlight)</option>
-                            <option value="bioluminescence">🔮 螢光/自發光粒子 (Glowing FX)</option>
-                            <option value="god_rays">☀️ 丁達爾聖光 (Tyndall Light Rays)</option>
-</select>
-                        <p class="text-[10px] text-slate-400 mt-1">※ 塑造整體桌面氛圍渲染</p>
-                        <p class="text-[10px] text-slate-500">主導整體畫面色溫與光影張力。</p>
-</div>
-
-                    <!-- Axis 4: Background Complexity -->
-                    <div>
-                        <label class="block text-xs font-semibold text-emerald-300 mb-1.5">
-                            <i class="fa-solid fa-mountain-sun text-emerald-400 mr-1"></i> 背景與場景豐富度
-                        </label>
-                        <select id="select-bg" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
-                            <option value="fantasy_magic" selected>🔮 魔法粒子/奇幻場景 Fantasy</option>
-                            <option value="nature_landscape">🌸 季節自然/街道景緻 Nature</option>
-                            <option value="cyber_city">🏙️ 未來賽博都市 Cyber City</option>
-                            <option value="school_life">🏫 校園/日常街景 Daily Life</option>
-                            <option value="deep_space">🌌 深空星雲 Deep Space Nebula</option>
-                            <option value="minimalist">🌌 幾何極簡/攝影棚 Minimalist</option>
-                    <!-- Background Complexity -->
-                    <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3 space-y-1.5">
-                        <label class="text-[11px] font-medium text-slate-300 block">🖼️ 背景細節 (Background)</label>
-                        <select id="select-bg" class="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 p-2 focus:border-violet-500 outline-none">
-                            <option value="minimalist">🌌 幾何極簡 (Minimalist Clean)</option>
-                            <option value="nature_landscape">🌸 季節自然/櫻花雪景 (Nature)</option>
-                            <option value="fantasy_magic">🔮 魔法粒子/空間裂縫 (Fantasy)</option>
-                            <option value="cyber_city">🏙️ 未來賽博都市 (Cyberpunk City)</option>
-                            <option value="daily_street">🏫 校園/日常街景 (Daily Anime)</option>
-                            <option value="deep_space">🌌 深空星雲 (Deep Space Cosmos)</option>
-</select>
-                        <p class="text-[10px] text-slate-400 mt-1">※ 避免過度繁雜影響桌面圖示</p>
-                        <p class="text-[10px] text-slate-500">設置場景複雜度與陪襯元素。</p>
-</div>
-</div>
-
-                <!-- Character & IP Specific Inputs -->
-                <div class="space-y-4">
-                    
-                    <!-- Quick IP Selector & Name Input -->
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <label class="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                                <i class="fa-solid fa-film text-pink-400"></i> 原作 IP 與作品名稱
-                            </label>
-                            <span class="text-[11px] text-slate-400">熱門快選：</span>
-                        </div>
-                <!-- Line Density / Color Tone / Contrast Controls -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                    <div class="bg-slate-900/50 border border-slate-800/80 rounded-xl p-2.5">
-                        <span class="text-[11px] text-slate-400 block mb-1">色調選擇 (Color Tone)</span>
-                        <select id="select-tone" class="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 p-1.5 outline-none">
-                            <option value="warm">☀️ 暖色系 (Warm Warmth)</option>
-                            <option value="cool">❄️ 冷色系 (Cool Coolness)</option>
-                            <option value="balanced" selected>⚖️ 標準平衡 (Balanced Tone)</option>
-                        </select>
-                    </div>
-                    <div class="bg-slate-900/50 border border-slate-800/80 rounded-xl p-2.5">
-                        <span class="text-[11px] text-slate-400 block mb-1">線條密度 (Line Details)</span>
-                        <select id="select-lines" class="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 p-1.5 outline-none">
-                            <option value="dense">🖊️ 多線條 / 繁複細節 (Detailed Lineart)</option>
-                            <option value="clean" selected>🖋️ 少線條 / 極簡輪廓 (Clean Outline)</option>
-                        </select>
-                    </div>
-                    <div class="bg-slate-900/50 border border-slate-800/80 rounded-xl p-2.5">
-                        <span class="text-[11px] text-slate-400 block mb-1">色彩對比 (Contrast)</span>
-                        <select id="select-contrast" class="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 p-1.5 outline-none">
-                            <option value="high">💥 高對比度 (High Dynamic)</option>
-                            <option value="soft">🌸 柔和自然 (Soft Contrast)</option>
-                            <option value="standard" selected>⚖️ 標準平衡 (Standard)</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-                        <!-- IP Quick Tags -->
-                        <div class="flex flex-wrap gap-1.5 mb-2">
-                            <button type="button" onclick="window.applyIpTag('葬送的芙莉蓮', '芙莉蓮')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700">葬送的芙莉蓮</button>
-                            <button type="button" onclick="window.applyIpTag('原神', '雷電將軍')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700">原神</button>
-                            <button type="button" onclick="window.applyIpTag('崩壞：星穹鐵道', '三月七')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700">崩壞：星穹鐵道</button>
-                            <button type="button" onclick="window.applyIpTag('絕區零', '艾蓮·喬')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700">絕區零</button>
-                            <button type="button" onclick="window.applyIpTag('Vocaloid', '初音未來')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700">初音未來</button>
-                            <button type="button" onclick="window.applyIpTag('SPY×FAMILY', '安妮亞')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700">SPY×FAMILY</button>
-                        </div>
-            <!-- 3. Character Details & Prompt Fields -->
-            <div class="space-y-4 pt-2 border-t border-slate-800/80">
-                <label class="block text-xs font-semibold text-slate-300 flex items-center justify-between">
-                    <span class="flex items-center gap-2">
-                        <i class="fa-solid fa-user-gear text-cyan-400"></i> 3. 角色特徵與情境描繪 (Character Details)
-                    </span>
-                    <span class="text-[10px] text-slate-500 font-normal">提示：填寫越詳細，畫風還原度越高。</span>
-                </label>
-
-                        <input type="text" id="ip-input" placeholder="例如：葬送的芙莉蓮 / 原神 / 崩壞星穹鐵道" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500">
-                <!-- Quick IP Presets -->
-                <div class="space-y-1.5">
-                    <span class="text-[11px] text-slate-400">🔥 熱門作品快速標籤 (Quick IP Presets)：</span>
-                    <div class="flex flex-wrap gap-1.5">
-                        <button onclick="window.applyIpTag('葬送的芙莉蓮', '芙莉蓮, 銀髮雙馬尾, 精靈耳, 白金邊精靈法袍')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:border-violet-500 hover:text-violet-300 transition">✨ 葬送的芙莉蓮</button>
-                        <button onclick="window.applyIpTag('原神', '雷電將軍, 紫色編髮長髮, 浮世胸花, 狐狸面具')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:border-violet-500 hover:text-violet-300 transition">⚡ 原神 (雷電將軍)</button>
-                        <button onclick="window.applyIpTag('崩壞：星穹鐵道', '三月七, 漸層粉藍短髮, 亮藍雙眼, 照相機')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:border-violet-500 hover:text-violet-300 transition">🚂 星穹鐵道 (三月七)</button>
-                        <button onclick="window.applyIpTag('Vocaloid', '初音未來, 雙馬尾綠髮, 科技感發光髮飾')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:border-violet-500 hover:text-violet-300 transition">🎵 初音未來</button>
-</div>
-                </div>
-
-                    <!-- Character Name & Features -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-200 mb-1">
-                            <i class="fa-solid fa-user-gear text-cyan-400"></i> 角色名稱與外貌特徵描述
-                        </label>
-                        <input type="text" id="character-input" placeholder="例如：芙莉蓮、銀髮雙馬尾、精靈耳、綠色眼睛、白色精靈法袍" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
-                        <p class="text-[10px] text-slate-400 mt-1">💡 提示：輸入關鍵外貌（髮色、瞳色、經典裝備）可大幅提升 AI 角色還原精準度</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- IP & Character Name -->
-                    <div class="space-y-1.5">
-                        <label class="text-[11px] text-slate-300 font-medium block">原作 IP 名稱 (Anime/Game Title)</label>
-                        <input id="ip-input" type="text" placeholder="例如：葬送的芙莉蓮, 原神, 崩壞星穹鐵道" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:border-violet-500 outline-none transition placeholder:text-slate-600">
-                    </div>
-                    <div class="space-y-1.5">
-                        <label class="text-[11px] text-slate-300 font-medium block">角色名稱與關鍵外貌 (Character Name & Features)</label>
-                        <input id="character-input" type="text" placeholder="例如：芙莉蓮, 銀髮雙馬尾, 精靈耳, 白金邊魔法袍" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:border-violet-500 outline-none transition placeholder:text-slate-600">
-</div>
-                </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Action / Pose Field -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-200 mb-1">
-                                <i class="fa-solid fa-person-running text-amber-400"></i> 角色動作與場景情境
-                            </label>
-                            <input type="text" id="action-input" placeholder="例如：站在開滿花朵的樹下、伸手準備施放魔法" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500">
-                        </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Action & Scene -->
-                    <div class="space-y-1.5">
-                        <label class="text-[11px] text-slate-300 font-medium block">角色姿態與動作 (Action & Pose)</label>
-                        <input id="action-input" type="text" placeholder="例如：站在滿開蒼月草花海中, 輕輕握住木製法杖" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:border-violet-500 outline-none transition placeholder:text-slate-600">
-                    </div>
-                    <!-- Elements & Visual Effects -->
-                    <div class="space-y-1.5">
-                        <label class="text-[11px] text-slate-300 font-medium block">核心道具與環境特效 (Elements & FX)</label>
-                        <input id="elem-input" type="text" placeholder="例如：飄浮的藍色光點, 柔和微風, 蒼月草花瓣飄散" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:border-violet-500 outline-none transition placeholder:text-slate-600">
-                    </div>
-                </div>
-
-                        <!-- Elements / Props Field -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-200 mb-1">
-                                <i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> 核心元素、道具與視覺特效
-                            </label>
-                            <input type="text" id="elem-input" placeholder="例如：金色木製法杖、發光的魔法陣、飄落的花瓣與星光" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-                        </div>
-                <!-- 4. Reference Image Upload Section (Image-to-Image Character Lock) -->
-                <div class="bg-slate-900/40 border border-dashed border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row items-center gap-4">
-                    <div class="flex-1 space-y-1 text-center sm:text-left">
-                        <span class="text-xs font-medium text-slate-200 block flex items-center gap-1.5 justify-center sm:justify-start">
-                            <i class="fa-solid fa-image text-cyan-400"></i> 上傳角色參考圖 (Image-to-Image 特徵鎖定)
-                        </span>
-                        <p class="text-[11px] text-slate-500">💡 建議上傳單人、清晰半身官方立繪，AI 將精確鎖定臉孔、髮型與服裝細節。</p>
-</div>
-
-                    <!-- Reference Image Upload (Image-to-Image Character Lock) -->
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <label class="text-xs font-semibold text-cyan-300 flex items-center gap-1.5">
-                                <i class="fa-solid fa-image text-cyan-400"></i> 上傳角色參考圖 (Image Reference / 特徵鎖定)
-                            </label>
-                            <span class="text-[10px] text-slate-400">💡 上傳官方立繪/劇照，AI 將精確鎖定臉型髮色</span>
-                        </div>
-                    <div class="relative min-w-[120px] text-center">
-                        <input type="file" id="ref-file-input" accept="image/*" onchange="window.handleRefImageUpload(event)" class="hidden">
-                        <label for="ref-file-input" class="cursor-pointer px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 flex items-center justify-center gap-2 border border-slate-700 transition">
-                            <i class="fa-solid fa-upload"></i>
-                            <span id="ref-img-prompt-text">選擇圖片</span>
-                        </label>
-
-                        <div id="drop-zone" onclick="document.getElementById('ref-file-input').click()" class="border-2 border-dashed border-slate-800 hover:border-cyan-500/50 bg-slate-900/40 rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-3">
-                            <input type="file" id="ref-file-input" accept="image/*" class="hidden" onchange="window.handleRefImageUpload(event)">
-                            <div id="ref-img-preview-container" class="hidden flex items-center gap-3">
-                                <img id="ref-img-preview" src="" class="w-12 h-12 object-cover rounded-lg border border-cyan-500/50 shadow">
-                                <div class="text-left">
-                                    <p class="text-xs font-medium text-cyan-300">已成功鎖定參考圖特徵</p>
-                                    <p class="text-[10px] text-slate-400">自動執行 Canvas 最佳化壓縮</p>
-                                </div>
-                                <button type="button" onclick="event.stopPropagation(); window.removeRefImage()" class="ml-auto text-slate-400 hover:text-rose-400 text-xs px-2 py-1">
-                                    <i class="fa-solid fa-xmark"></i> 移除
-                                </button>
-                            </div>
-                            <div id="ref-img-prompt-text" class="text-slate-400 text-xs flex items-center gap-2">
-                                <i class="fa-solid fa-cloud-arrow-up text-cyan-400 text-base"></i>
-                                <span>點擊或拖曳角色參考圖至此 (建議單人、清晰官方立繪)</span>
-                            </div>
-                        <!-- Uploaded Preview Thumbnail -->
-                        <div id="ref-img-preview-container" class="hidden relative inline-block mt-1">
-                            <img id="ref-img-preview" src="" class="w-16 h-16 object-cover rounded-lg border-2 border-cyan-400 shadow">
-                            <button onclick="window.removeRefImage()" class="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-[10px] flex items-center justify-center shadow">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-</div>
-</div>
-</div>
-            </div>
-
-                <!-- Submit Button -->
-                <div class="pt-2">
-                    <button type="submit" id="generate-submit-btn" class="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white font-semibold text-sm shadow-xl shadow-violet-600/25 transition-all flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i>
-                        <span>一鍵生成高解析度角色桌布</span>
-                    </button>
-            <!-- Generate Submit Button -->
-            <div class="pt-2">
-                <button id="generate-submit-btn" onclick="window.triggerGeneration()" class="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white font-bold text-sm shadow-xl shadow-violet-600/25 flex items-center justify-center gap-3 transition transform active:scale-[0.99]">
-                    <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
-                    <span>✨ 一鍵生成高解析度角色桌布</span>
-                </button>
-            </div>
-
-            <!-- Dynamic Progress Indicator -->
-            <div id="progress-container" class="hidden glass-panel border border-violet-500/30 rounded-xl p-4 space-y-2">
-                <div class="flex items-center justify-between text-xs">
-                    <span id="progress-step-text" class="font-semibold text-violet-300">正在生成桌布...</span>
-                    <span id="progress-percent-text" class="text-cyan-400 font-mono font-bold">0%</span>
-                </div>
-                <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
-                    <div id="progress-bar-fill" class="bg-gradient-to-r from-violet-500 to-cyan-400 h-full transition-all duration-300 w-0"></div>
-</div>
-            </form>
-                <p id="progress-subtext" class="text-[11px] text-slate-400 text-center animate-pulse">正在調度 Gemini AI 進行角色解構與畫風渲染...</p>
-            </div>
-</section>
-
-        <!-- LOWER SECTION: Expanded Live Preview & Mockups -->
-        <section class="glass-panel rounded-2xl p-5 md:p-6 shadow-xl space-y-4">
-            
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-eye text-cyan-400"></i>
-                    <h2 class="text-base font-semibold text-slate-100">即時桌面展示台與實機試套 Preview</h2>
-                    <span id="preview-status-tag" class="hidden text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
-                        生成完成
-                    </span>
-
-        <!-- ================= BOTTOM HALF: LIVE PREVIEW & TESTING STAGE ================= -->
-        <section class="glass-panel rounded-2xl p-5 lg:p-6 shadow-2xl space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-                <div>
-                    <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-                        <i class="fa-solid fa-display text-cyan-400"></i>
-                        即時桌面展示台與實機試套 (Live Preview)
-                    </h2>
-                    <p class="text-xs text-slate-400 mt-0.5">預覽高解析度成品，支援手機鎖屏與電腦桌面 UI 疊加試套。</p>
-</div>
-
-                <!-- Mockup Overlay Controls -->
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="window.toggleOverlay('phone')" id="overlay-phone-btn" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700">
-                        <i class="fa-solid fa-mobile-screen text-cyan-400 mr-1"></i> 手機鎖屏時鐘
-                <!-- Preview Actions Bar -->
-                <div id="preview-actions-bar" class="hidden flex flex-wrap items-center gap-2">
-                    <!-- Toggle Phone Mockup -->
-                    <button onclick="window.toggleOverlay('phone')" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-mobile-screen text-cyan-400"></i>
-                        <span>📱 手機鎖屏試套</span>
-</button>
-                    <button type="button" onclick="window.toggleOverlay('desktop')" id="overlay-desktop-btn" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700">
-                        <i class="fa-solid fa-desktop text-violet-400 mr-1"></i> 電腦 App 圖示
-                    <!-- Toggle Desktop Mockup -->
-                    <button onclick="window.toggleOverlay('desktop')" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-desktop text-violet-400"></i>
-                        <span>💻 電腦桌面試套</span>
-                    </button>
-                    <!-- Download -->
-                    <button onclick="window.downloadCurrentWallpaper()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-download"></i>
-                        <span>下載桌布</span>
-                    </button>
-                    <!-- Favorite Toggle -->
-                    <button id="favorite-toggle-btn" onclick="window.toggleCurrentFavorite()" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-rose-500/50 text-xs text-slate-300 flex items-center gap-1.5 transition">
-                        <i class="fa-regular fa-heart text-rose-500"></i>
-                        <span>收藏</span>
-</button>
-</div>
-</div>
-
-            <!-- Progress Indicator Container -->
-            <div id="progress-container" class="hidden space-y-2 py-4 px-6 bg-slate-900/80 rounded-xl border border-violet-500/30">
-                <div class="flex items-center justify-between text-xs">
-                    <span id="progress-step-text" class="font-medium text-violet-300">正在初始化生成程序...</span>
-                    <span id="progress-percent-text" class="text-cyan-400 font-bold">0%</span>
-                </div>
-                <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
-                    <div id="progress-bar-fill" class="bg-gradient-to-r from-violet-500 to-cyan-400 h-full w-0 transition-all duration-300"></div>
-                </div>
-                <p id="progress-subtext" class="text-[11px] text-slate-400 text-center pt-1">Gemini 正深度解構角色特徵標籤...</p>
-            </div>
-
-            <!-- Main Wallpaper Showcase Stage -->
-            <div id="showcase-stage" class="relative w-full min-h-[420px] md:min-h-[520px] bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-center overflow-hidden p-4">
-            <!-- High-Res Wallpaper Display Viewport -->
-            <div id="wallpaper-viewport" class="relative min-h-[420px] max-h-[680px] bg-slate-950/80 border border-slate-800 rounded-2xl overflow-hidden flex items-center justify-center p-4">
-
-                <!-- Placeholder Screen -->
-                <div id="preview-placeholder" class="text-center space-y-3 p-6 max-w-sm">
-                    <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-2xl text-slate-500">
-                        🖼️
-                <!-- Initial Placeholder -->
-                <div id="preview-placeholder" class="text-center space-y-3 p-6 max-w-md">
-                    <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
-                        <i class="fa-regular fa-image"></i>
-</div>
-                    <h3 class="text-sm font-semibold text-slate-300">尚未生成桌布作品</h3>
-                    <p class="text-xs text-slate-400">請於上方設定角色細節與 4D 風格，點擊「一鍵生成高解析度角色桌布」即可於此處預覽大圖。</p>
-                    <h3 class="text-sm font-semibold text-slate-300">尚未生成桌布</h3>
-                    <p class="text-xs text-slate-500">在上方設定角色特徵與風格參數後，點擊「一鍵生成」即可在此預覽高清畫面。</p>
-</div>
-
-                <!-- Displayed Wallpaper Image -->
-                <img id="main-wallpaper-img" src="" class="hidden max-h-[600px] w-auto h-auto object-contain rounded-lg shadow-2xl border border-slate-800 transition-all duration-300">
-                <!-- Main Wallpaper Image -->
-                <img id="main-wallpaper-img" src="" class="hidden max-h-[620px] w-auto object-contain rounded-xl shadow-2xl transition duration-300 cursor-pointer" onclick="window.openLightbox()" title="點擊放大全螢幕檢視">
-
-                <!-- Smartphone Mockup Overlay Layer -->
-                <div id="mockup-phone-layer" class="hidden absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-8 text-white select-none">
-                    <div class="text-center space-y-1 mt-6">
-                        <p class="text-5xl font-light tracking-tight drop-shadow-md">09:41</p>
-                        <p class="text-xs font-medium tracking-wide drop-shadow">8月13日 星期四</p>
-                <!-- OVERLAY 1: Phone Lock Screen Mockup -->
-                <div id="mockup-phone-layer" class="hidden absolute inset-0 pointer-events-none flex flex-col justify-between p-8 text-white text-center">
-                    <div class="mt-8 space-y-1 drop-shadow-md">
-                        <div class="text-xs font-medium opacity-80">3月31日 星期二</div>
-                        <div class="text-5xl font-bold font-mono tracking-tight">09:41</div>
-                    </div>
-                    <div class="mb-4 flex items-center justify-between px-6 opacity-80 text-xs drop-shadow">
-                        <i class="fa-solid fa-flashlight text-base"></i>
-                        <div class="w-32 h-1 bg-white/80 rounded-full mx-auto"></div>
-                        <i class="fa-solid fa-camera text-base"></i>
-</div>
-                    <div class="w-28 h-1 bg-white/60 rounded-full mb-2 shadow"></div>
-</div>
-
-                <!-- Desktop Icons Mockup Overlay Layer -->
-                <div id="mockup-desktop-layer" class="hidden absolute inset-0 pointer-events-none p-6 select-none">
-                    <div class="grid grid-rows-4 grid-flow-col gap-6 w-max">
-                        <div class="flex flex-col items-center gap-1 text-[10px] text-white drop-shadow">
-                            <div class="w-10 h-10 rounded-xl bg-blue-500/80 flex items-center justify-center text-lg"><i class="fa-solid fa-folder"></i></div>
-                            <span>我的文件</span>
-                        </div>
-                        <div class="flex flex-col items-center gap-1 text-[10px] text-white drop-shadow">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-500/80 flex items-center justify-center text-lg"><i class="fa-solid fa-globe"></i></div>
-                            <span>瀏覽器</span>
-                        </div>
-                        <div class="flex flex-col items-center gap-1 text-[10px] text-white drop-shadow">
-                            <div class="w-10 h-10 rounded-xl bg-purple-500/80 flex items-center justify-center text-lg"><i class="fa-solid fa-gamepad"></i></div>
-                            <span>遊戲專區</span>
-                        </div>
-                <!-- OVERLAY 2: Desktop Icons Mockup -->
-                <div id="mockup-desktop-layer" class="hidden absolute inset-0 pointer-events-none flex flex-col justify-between p-6">
-                    <div class="grid grid-cols-1 gap-4 w-12 text-center text-[10px] text-white drop-shadow">
-                        <div class="space-y-1"><div class="w-10 h-10 bg-blue-500/80 rounded-lg mx-auto flex items-center justify-center text-base"><i class="fa-solid fa-folder"></i></div><span>作品資料夾</span></div>
-                        <div class="space-y-1"><div class="w-10 h-10 bg-violet-500/80 rounded-lg mx-auto flex items-center justify-center text-base"><i class="fa-solid fa-gamepad"></i></div><span>遊戲專區</span></div>
-                    </div>
-                    <div class="w-full bg-slate-900/70 border border-slate-700/50 rounded-xl py-1.5 px-4 flex items-center justify-between backdrop-blur text-xs text-slate-300">
-                        <div class="flex items-center gap-3"><i class="fa-brands fa-windows text-cyan-400"></i><span>搜尋桌面...</span></div>
-                        <div class="text-[11px] font-mono">10:30 AM</div>
-</div>
-</div>
-</div>
-
-            <!-- Preview Actions Bar -->
-            <div id="preview-actions-bar" class="hidden flex flex-wrap items-center justify-between gap-3 pt-2">
-                <div class="flex items-center gap-2">
-                    <button onclick="window.downloadCurrentWallpaper()" class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-download"></i>
-                        <span>下載高清桌布</span>
-                    </button>
-                    <button id="favorite-toggle-btn" onclick="window.toggleFavoriteCurrent()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5">
-                        <i class="fa-regular fa-heart"></i>
-                        <span>加入收藏</span>
-                    </button>
-                    <button onclick="window.openLightbox()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-expand"></i>
-                        <span>全螢幕放大</span>
-            <!-- Second Stage Multi-Turn Refinement Box -->
-            <div id="second-stage-edit-box" class="hidden bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-pen-to-square text-violet-400"></i> 二段圖面微調 (Multi-Turn Refinement)
-                    </span>
-                    <button onclick="window.copyRefinedPrompt()" class="text-[11px] text-cyan-400 hover:underline flex items-center gap-1">
-                        <i class="fa-regular fa-copy"></i> 複製英文 Prompt
-</button>
-</div>
-
-                <button onclick="window.copyRefinedPrompt()" class="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs border border-slate-800 transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-copy"></i>
-                    <span>複製 AI Prompt</span>
-                </button>
-            </div>
-
-            <!-- Second-Stage Multi-Turn Image Refinement Section -->
-            <div id="second-stage-edit-box" class="hidden pt-4 border-t border-slate-800">
-                <label class="block text-xs font-semibold text-cyan-300 mb-1.5">
-                    <i class="fa-solid fa-pen-to-square text-cyan-400 mr-1"></i> 二段圖面微調 (Multi-turn Image Editing)
-                </label>
-<div class="flex gap-2">
-                    <input type="text" id="edit-prompt-input" placeholder="例如：將背景改成雪景、讓角色戴上櫻花髮飾、將服裝換成黑色洋裝..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
-                    <button type="button" onclick="window.triggerMultiTurnEdit()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1">
-                        <i class="fa-solid fa-wand-sparkles"></i>
-                        <span>二次微調繪製</span>
-                    <input id="edit-prompt-input" type="text" placeholder="例如：將背景改成雪景、讓角色閉眼微笑、增加飄逸斗篷..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-violet-500 outline-none">
-                    <button onclick="window.triggerMultiTurnEdit()" class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-wand-magic"></i>
-                        <span>微調修圖</span>
-</button>
-</div>
-                <p class="text-[10px] text-slate-400 mt-1">※ 基於上方生成之第一版畫面，以多輪繪圖模型進行細節微調修圖。</p>
-</div>
-</section>
-
-        <!-- BOTTOM SECTION: Gallery & Cloud History -->
-        <section class="glass-panel rounded-2xl p-5 md:p-6 shadow-xl space-y-4">
-            
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-
-        <!-- ================= GALLERY & CLOUD HISTORY SECTION ================= -->
-        <section class="glass-panel rounded-2xl p-5 lg:p-6 shadow-2xl space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-3">
-<div class="flex items-center gap-3">
-                    <i class="fa-solid fa-clock-rotate-left text-violet-400"></i>
-                    <h2 class="text-base font-semibold text-slate-100">我的作品藝廊 & 雲端收藏夾</h2>
-                    <h2 class="text-sm font-bold text-slate-100 flex items-center gap-2">
-                        <i class="fa-solid fa-box-archive text-violet-400"></i>
-                        雲端藝廊與歷史紀錄 (Gallery)
-                    </h2>
-                    <div class="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-[11px]">
-                        <button onclick="window.setGalleryFilter('all')" id="filter-btn-all" class="px-2.5 py-1 rounded-md bg-slate-800 text-slate-200 font-medium">全部歷史</button>
-                        <button onclick="window.setGalleryFilter('favorites')" id="filter-btn-fav" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200">❤️ 我的收藏</button>
-                    </div>
-</div>
-
-                <!-- Gallery Tabs -->
-                <div class="flex items-center gap-2">
-                    <button onclick="window.switchGalleryTab('all')" id="tab-btn-all" class="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-medium">全部歷史</button>
-                    <button onclick="window.switchGalleryTab('favorites')" id="tab-btn-favorites" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs font-medium">❤️ 我的收藏</button>
-                    <button onclick="window.downloadFavoritesZip()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-cyan-300 text-xs font-medium border border-slate-700" title="打包下載收藏夾 ZIP">
-                        <i class="fa-solid fa-file-zipper mr-1"></i> ZIP 打包
-                    </button>
-                </div>
-                <button onclick="window.downloadFavoritesZip()" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition">
-                    <i class="fa-solid fa-file-zipper text-cyan-400"></i>
-                    <span>打包下載收藏 (ZIP)</span>
-                </button>
-</div>
-
-            <!-- Gallery Grid Area -->
-            <div id="gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 min-h-[160px]">
-                <!-- Empty state -->
-                <div id="gallery-empty-msg" class="col-span-full text-center py-12 text-slate-500 text-xs">
-                    尚未有生成紀錄，快開始製作第一張客製化角色桌布吧！
-            <!-- Gallery Grid -->
-            <div id="gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                <div class="col-span-full text-center py-12 text-slate-500 text-xs">
-                    載入中或尚未有生成紀錄...
-</div>
-</div>
-</section>
-
-</main>
-
-    <!-- Footer Information -->
-    <footer class="border-t border-slate-800/80 bg-slate-950 py-6 text-center text-xs text-slate-500 space-y-1">
-        <p>🔮 角色桌布生成器 | @2026 hong Xiuquan | 創作者: 洪秀全</p>
-        <p class="text-[10px] text-slate-400">Powered by Gemini AI Engine & Firebase Cloud Sync</p>
-    <!-- Footer Section -->
-    <footer class="glass-panel border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 mt-8">
-        <div class="max-w-7xl mx-auto px-4 space-y-2">
-            <div class="flex items-center justify-center gap-4 text-slate-400">
-                <span>🔮 角色桌布生成器</span>
-                <span>•</span>
-                <span>創作者: 洪秀全</span>
-            </div>
-            <p>@2026 hong Xiuquan | All Rights Reserved. Powered by Gemini API & Firebase Serverless Architecture.</p>
-        </div>
-</footer>
-
-    <!-- Modals (API Key, Auth, Lightbox) -->
-    
-    <!-- API Key Modal -->
-    <div id="apikey-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-
-    <!-- ================= MODALS & LIGHTBOXES ================= -->
-    <!-- Lightbox Zoom Modal -->
-    <div id="lightbox-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4" onclick="window.closeLightbox()">
-        <img id="lightbox-img" src="" class="max-h-[92vh] max-w-[92vw] object-contain rounded-xl shadow-2xl">
-        <button onclick="window.closeLightbox()" class="absolute top-4 right-4 text-white text-2xl w-10 h-10 rounded-full bg-slate-900/80 flex items-center justify-center">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-
-    <!-- API Key Settings Modal -->
-    <div id="apikey-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="glass-panel max-w-md w-full rounded-2xl p-6 space-y-4 border border-slate-800" onclick="event.stopPropagation()">
-<div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-                    <i class="fa-solid fa-key text-amber-400"></i> 設定 Gemini API Key
-                <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
-                    <i class="fa-solid fa-key text-violet-400"></i> 設定自訂 Gemini API Key
-</h3>
-                <button onclick="window.toggleApiKeyModal()" class="text-slate-400 hover:text-white text-sm">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-                <button onclick="window.toggleApiKeyModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-</div>
-            <p class="text-xs text-slate-300">
-                如需使用您個人的 API Key，請貼於下方。若留空，Canvas 預設環境將會自動處理 API 調用。
-            </p>
-            <input type="password" id="custom-api-key-input" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500">
-            <p class="text-xs text-slate-400">若有私人 Google Gemini API Key 可填入此處（留空則自動使用預設金鑰）。</p>
-            <input id="custom-api-key-input" type="password" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-violet-500">
-<div class="flex justify-end gap-2 pt-2">
-                <button onclick="window.toggleApiKeyModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs">取消</button>
-                <button onclick="window.saveCustomApiKey()" class="px-4 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold">儲存 Key</button>
-                <button onclick="window.toggleApiKeyModal()" class="px-3 py-1.5 rounded-lg bg-slate-900 text-xs text-slate-400 hover:text-white">取消</button>
-                <button onclick="window.saveCustomApiKey()" class="px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold">儲存設定</button>
-</div>
-</div>
-</div>
-
-<!-- Firebase Auth Modal -->
-    <div id="auth-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
-    <div id="auth-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="glass-panel max-w-sm w-full rounded-2xl p-6 space-y-4 border border-slate-800" onclick="event.stopPropagation()">
-<div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-                    <i class="fa-solid fa-user-lock text-violet-400"></i> 會員系統登入 / 註冊
-                <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
-                    <i class="fa-solid fa-user-lock text-cyan-400"></i> 會員登入 / 註冊
-</h3>
-                <button onclick="window.toggleAuthModal()" class="text-slate-400 hover:text-white text-sm">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-                <button onclick="window.toggleAuthModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-</div>
-<div class="space-y-3">
-<div>
-                    <label class="block text-xs text-slate-400 mb-1">電子信箱 Email</label>
-                    <input type="email" id="auth-email" placeholder="user@example.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-violet-500">
-                    <label class="text-[11px] text-slate-400 block mb-1">電子信箱 (Email)</label>
-                    <input id="auth-email" type="email" placeholder="user@example.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-violet-500">
-</div>
-<div>
-                    <label class="block text-xs text-slate-400 mb-1">密碼 Password</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-violet-500">
-                    <label class="text-[11px] text-slate-400 block mb-1">密碼 (Password)</label>
-                    <input id="auth-password" type="password" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-violet-500">
-</div>
-</div>
-            <div class="space-y-2 pt-2">
-                <button onclick="window.handleEmailAuth('login')" class="w-full py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold rounded-xl transition">登入帳號</button>
-                <button onclick="window.handleEmailAuth('register')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-xl transition">註冊新帳號</button>
-                <div class="relative flex py-1 items-center">
-                    <div class="flex-grow border-t border-slate-800"></div>
-                    <span class="flex-shrink mx-2 text-[10px] text-slate-500">或</span>
-                    <div class="flex-grow border-t border-slate-800"></div>
-                </div>
-                <button onclick="window.handleAnonymousAuth()" class="w-full py-2 bg-slate-950 hover:bg-slate-800 text-cyan-400 text-xs border border-cyan-800/50 rounded-xl transition">⚡ 匿名免登入快速體驗</button>
-            <div class="flex flex-col gap-2 pt-2">
-                <button onclick="window.handleEmailAuth('login')" class="w-full py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition">登入帳號</button>
-                <button onclick="window.handleEmailAuth('signup')" class="w-full py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-semibold transition">註冊新帳號</button>
-                <button onclick="window.handleAnonymousAuth()" class="w-full py-2 rounded-xl bg-slate-950 hover:bg-slate-900 text-slate-400 text-[11px] transition">⚡ 快速體驗 (匿名登入)</button>
-</div>
-</div>
-</div>
-
-    <!-- Lightbox Modal -->
-    <div id="lightbox-modal" class="hidden fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
-        <button onclick="window.closeLightbox()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl z-10">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-        <img id="lightbox-img" src="" class="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl">
-    </div>
-
-    <!-- Application Logic Script -->
-    <!-- ================= APPLICATION SCRIPT ENGINE ================= -->
-<script>
-        // Global Application State
-        // Global State Architecture
-window.state = {
-selectedRatio: '9:16',
-refImageBase64: null,
-currentWallpaper: null,
-history: [],
-galleryFilter: 'all',
-customApiKey: localStorage.getItem('gemini_custom_key') || '',
-            user: null,
-            db: null
-            user: null
-};
-
-        // IndexedDB Local Storage Helper
-        // IndexedDB Initialization for Large Image Persistence
-const DB_NAME = 'WallpaperGenDB';
-const DB_VERSION = 1;
-
-function openDB() {
-return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                request.onupgradeneeded = (e) => {
-                const req = indexedDB.open(DB_NAME, DB_VERSION);
-                req.onupgradeneeded = (e) => {
-const db = e.target.result;
-if (!db.objectStoreNames.contains('wallpapers')) {
-db.createObjectStore('wallpapers', { keyPath: 'id' });
-}
-};
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject(req.error);
-});
-}
-
-@@ -563,17 +545,16 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-const tx = db.transaction('wallpapers', 'readwrite');
-tx.objectStore('wallpapers').put(item);
-} catch (e) {
-                console.warn("IndexedDB save failed:", e);
-                console.warn("IndexedDB Save Failed:", e);
-}
-}
-
-async function loadFromIndexedDB() {
-try {
-const db = await openDB();
-                const tx = db.transaction('wallpapers', 'readonly');
-                const store = tx.objectStore('wallpapers');
-return new Promise((resolve) => {
-                    const req = store.getAll();
-                    const tx = db.transaction('wallpapers', 'readonly');
-                    const req = tx.objectStore('wallpapers').getAll();
-req.onsuccess = () => resolve(req.result || []);
-req.onerror = () => resolve([]);
-});
-@@ -582,57 +563,9 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-}
-}
-
-        // Initialize App
-        window.onload = async function() {
-            if (window.state.customApiKey) {
-                document.getElementById('custom-api-key-input').value = window.state.customApiKey;
-                document.getElementById('key-btn-text').innerText = "API Key (已設定)";
-            }
-
-            // Load IndexedDB History
-            const cachedItems = await loadFromIndexedDB();
-            window.state.history = cachedItems.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-            renderGallery();
-
-            // Firebase Auth Listener
-            if (window.firebaseAuth) {
-                window.firebaseAuth.onAuthStateChanged(async (user) => {
-                    window.state.user = user;
-                    const nameEl = document.getElementById('user-display-name');
-                    if (user) {
-                        nameEl.innerText = user.isAnonymous ? "匿名試用者" : (user.email ? user.email.split('@')[0] : "會員");
-                        await syncCloudWallpapers();
-                    } else {
-                        nameEl.innerText = "登入 / 試用";
-                    }
-                });
-            }
-        };
-
-        // Aspect Ratio Selector
-        window.setRatio = function(ratio) {
-            window.state.selectedRatio = ratio;
-            document.querySelectorAll('.ratio-btn').forEach(btn => {
-                btn.classList.remove('border-cyan-500/50', 'bg-cyan-950/30', 'text-cyan-300');
-                btn.classList.add('border-slate-800', 'bg-slate-900/60', 'text-slate-400');
-            });
-            const selectedBtnId = ratio === '9:16' ? 'ratio-btn-916' : (ratio === '16:9' ? 'ratio-btn-169' : 'ratio-btn-43');
-            const btn = document.getElementById(selectedBtnId);
-            if (btn) {
-                btn.classList.remove('border-slate-800', 'bg-slate-900/60', 'text-slate-400');
-                btn.classList.add('border-cyan-500/50', 'bg-cyan-950/30', 'text-cyan-300');
-            }
-        };
-
-        // Quick IP Tag Application
-        window.applyIpTag = function(ip, char) {
-            document.getElementById('ip-input').value = ip;
-            if (char) document.getElementById('character-input').value = char;
-        };
-
-        // Reference Image Canvas Compression
-        // Reference Image Upload Handler (Canvas Auto-Compression)
-window.handleRefImageUpload = function(e) {
-            const file = e.target.files[0];
-            const file = e.target.files && e.target.files[0];
-if (!file) return;
-
-const reader = new FileReader();
-@@ -678,7 +611,25 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-document.getElementById('ref-img-prompt-text').classList.remove('hidden');
-};
-
-        // Inspiration Bundles (🎲 靈感抽卡)
-        window.setRatio = function(ratio) {
-            window.state.selectedRatio = ratio;
-            document.querySelectorAll('.ratio-btn').forEach(btn => {
-                btn.classList.remove('border-cyan-500/50', 'bg-cyan-950/30', 'text-cyan-300');
-                btn.classList.add('border-slate-800', 'bg-slate-900/60', 'text-slate-400');
-            });
-            const selectedBtnId = ratio === '9:16' ? 'ratio-btn-916' : (ratio === '16:9' ? 'ratio-btn-169' : 'ratio-btn-43');
-            const btn = document.getElementById(selectedBtnId);
-            if (btn) {
-                btn.classList.remove('border-slate-800', 'bg-slate-900/60', 'text-slate-400');
-                btn.classList.add('border-cyan-500/50', 'bg-cyan-950/30', 'text-cyan-300');
-            }
-        };
-
-        window.applyIpTag = function(ip, char) {
-            document.getElementById('ip-input').value = ip;
-            if (char) document.getElementById('character-input').value = char;
-        };
-
-window.triggerRandomizer = function() {
-const bundles = [
-{
-@@ -715,9 +666,65 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-document.getElementById('select-bg').value = selected.bg;
-};
-
-        // Main Wallpaper Generation Engine
-        const ART_STYLE_MAP = {
-            key_visual: "official anime key visual, highly detailed anime studio poster, sharp clean linework, pristine visual quality",
-            watercolor: "soft traditional watercolor painting, delicate watercolor wash, translucent pigments, gentle paper texture edges",
-            cel_shading: "classic anime cel shading art style, crisp bold outlines, distinct flat shadow blocks, vibrant color palette",
-            painterly: "rich digital oil painting, painterly impasto textures, thick brushstrokes, deep color depth, elegant artwork",
-            cyber_pop: "vibrant cyber pop art style, neon saturated colors, glowing chromatic accents, futuristic anime pop design",
-            vintage_90s: "retro 90s anime style, nostalgic cel grain, classic 1990s film aesthetic, soft vintage anime colors",
-            ink_wash: "traditional Japanese sumi-e ink wash painting, expressive brush strokes, feathery ink edges, artistic ink wash",
-            pixel_art: "detailed pixel art style, retro 16-bit video game aesthetic, crisp pixel graphics, nostalgic arcade artwork"
-        };
-
-        const CAMERA_MAP = {
-            rule_of_thirds: "rule of thirds composition, off-center focal alignment, balanced aesthetic framing",
-            symmetrical: "perfect symmetrical composition, iconic centered framing, balanced formal perspective",
-            diagonal: "dynamic diagonal composition, strong leading lines, action tilted angle, motion perspective",
-            framed: "center framed composition, natural environmental framing elements around subject, focused perspective",
-            dutch_angle: "dramatic low angle dutch angle shot, hero perspective, dynamic upward camera angle",
-            close_up: "intimate character close-up portrait, focusing on face and detailed expressive eyes, shallow depth of field",
-            cinematic_space: "wide angle cinematic framing, environment-first composition, spacious background for desktop icons"
-        };
-
-        const LIGHTING_MAP = {
-            golden_hour: "golden hour backlight, warm golden sunlight, dreamy sunset rim lighting, soft long shadows",
-            neon_cyber: "neon cyberpunk night lighting, glowing cyan and magenta reflections, dramatic dark contrast",
-            soft_diffused: "soft diffused natural lighting, gentle atmospheric illumination, smooth subtle shadows",
-            dramatic_shadow: "dramatic chiaroscuro lighting, high dynamic shadow contrast, intense directional light beam",
-            moonlight: "serene moonlight, cool ethereal blue night glow, subtle starry night ambiance",
-            bioluminescence: "bioluminescent glowing effects, magical floating luminous particles, enchanting ambient glow",
-            god_rays: "spectacular Tyndall light rays, volumetric sunbeams streaming through clouds"
-        };
-
-        const BG_MAP = {
-            minimalist: "minimalist clean studio background, subtle abstract gradient, unobtrusive background design",
-            nature_landscape: "scenic natural landscape, floating cherry blossom petals or soft falling snow, atmospheric nature",
-            fantasy_magic: "magical fantasy scene, glowing spell circles, celestial floating magic particles, ethereal rift",
-            cyber_city: "futuristic cyberpunk metropolis skyline at night, glowing holographic billboards, rain slicked streets",
-            daily_street: "cozy anime school street scene, nostalgic afternoon city street, charming daily anime scenery",
-            deep_space: "deep space cosmic nebula, sparkling galaxy background, luminous stars and stardust"
-        };
-
-        const TONE_MAP = {
-            warm: "warm color palette, golden amber and soft coral color harmony",
-            cool: "cool color palette, deep sapphire and cyan color harmony",
-            balanced: "balanced natural color palette"
-        };
-
-        const LINE_MAP = {
-            dense: "intricate detailed lineart, complex fine linework",
-            clean: "clean minimal outlines, pristine linework"
-        };
-
-        const CONTRAST_MAP = {
-            high: "high contrast dynamic range, rich deep darks and bright highlights",
-            soft: "soft subtle contrast, gentle tonal transitions",
-            standard: "standard balanced contrast"
-        };
-
-        // Main Wallpaper Generation Logic
-window.triggerGeneration = async function() {
-            // Get API key or fallback to empty string (Canvas handles runtime key injection when key="")
-const apiKey = window.state.customApiKey || "";
-
-const ipInput = document.getElementById('ip-input').value.trim();
-@@ -730,30 +737,53 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-return;
-}
-
-            // UI Loading State
-            // UI Progress Display
-document.getElementById('progress-container').classList.remove('hidden');
-document.getElementById('generate-submit-btn').disabled = true;
-document.getElementById('generate-submit-btn').classList.add('opacity-50');
-
-            updateProgress("[1/3] Gemini 正在解構角色外貌並重構英文 Prompt...", "解析中...", 30);
-            updateProgress("[1/3] Gemini 正在解構角色外貌並轉換精準風格 Prompt...", "解析風格中...", 30);
-
-            // Retrieve style selections and map them to explicit prompt modifiers
-            const artStyleKey = document.getElementById('select-artstyle')?.value || 'key_visual';
-            const cameraKey = document.getElementById('select-camera')?.value || 'rule_of_thirds';
-            const lightingKey = document.getElementById('select-lighting')?.value || 'golden_hour';
-            const bgKey = document.getElementById('select-bg')?.value || 'fantasy_magic';
-            const toneKey = document.getElementById('select-tone')?.value || 'balanced';
-            const linesKey = document.getElementById('select-lines')?.value || 'clean';
-            const contrastKey = document.getElementById('select-contrast')?.value || 'standard';
-
-            const artStyleDesc = ART_STYLE_MAP[artStyleKey] || ART_STYLE_MAP.key_visual;
-            const cameraDesc = CAMERA_MAP[cameraKey] || CAMERA_MAP.rule_of_thirds;
-            const lightingDesc = LIGHTING_MAP[lightingKey] || LIGHTING_MAP.golden_hour;
-            const bgDesc = BG_MAP[bgKey] || BG_MAP.fantasy_magic;
-            const toneDesc = TONE_MAP[toneKey] || TONE_MAP.balanced;
-            const linesDesc = LINE_MAP[linesKey] || LINE_MAP.clean;
-            const contrastDesc = CONTRAST_MAP[contrastKey] || CONTRAST_MAP.standard;
-
-            // Step 1: Prompt Refinement via Gemini LLM
-            const artStyleText = document.getElementById('select-artstyle')?.value || 'key_visual';
-            const cameraText = document.getElementById('select-camera')?.value || 'rule_of_thirds';
-            const lightingText = document.getElementById('select-lighting')?.value || 'golden_hour';
-            const bgText = document.getElementById('select-bg')?.value || 'fantasy_magic';
-            const explicitStyleDirectives = `STRICT VISUAL STYLE DIRECTIVES:
-- ART MEDIUM / STYLE: ${artStyleDesc}
-- CAMERA & COMPOSITION: ${cameraDesc}
-- LIGHTING & ATMOSPHERE: ${lightingDesc}
-- BACKGROUND COMPLEXITY: ${bgDesc}
-- COLOR TONE & LINES: ${toneDesc}, ${linesDesc}, ${contrastDesc}`;
-
-            const systemInstruction = `You are a world-class anime art director and prompt engineer.
-Deconstruct the user's input character and IP into accurate English official visual traits (hair color, eye color, outfit, accessories).
-Formulate a clean, highly detailed, masterpiece English anime wallpaper prompt.
-STRICT RULE: Absolutely NO text, NO letters, NO signatures, NO watermarks, NO logos in the final art.`;
-            const systemInstruction = `You are an elite anime art director and prompt engineer.
-Deconstruct the user's input character and IP into precise official visual traits (hair color, eye color, outfit, accessories).
-Formulate a clean, highly detailed, masterpiece anime wallpaper prompt.
-
-            const userPromptText = `Anime/IP: ${ipInput}, Character: ${charInput}, Action: ${actionInput}, Elements: ${elemInput}, Art Medium: ${artStyleText}, Camera: ${cameraText}, Lighting: ${lightingText}, Background: ${bgText}. Aspect ratio is ${window.state.selectedRatio}.`;
-CRITICAL REQUIREMENT: You MUST strictly enforce and incorporate the requested ART STYLE, CAMERA FRAMING, LIGHTING, and BACKGROUND into the final prompt text.
-${explicitStyleDirectives}
-
-            let refinedPrompt = `${ipInput ? ipInput + ' style, ' : ''}${charInput}, ${actionInput}, ${elemInput}, masterpiece, clean anime illustration, no text, no watermark`;
-STRICT RULE: Absolutely NO text, NO letters, NO signatures, NO watermarks, NO logos in the final illustration.`;
-
-            const userPromptText = `Anime/IP: ${ipInput}, Character: ${charInput}, Pose/Action: ${actionInput}, Key Elements: ${elemInput}.
-${explicitStyleDirectives}. Target Aspect Ratio: ${window.state.selectedRatio}.`;
-
-            let refinedPrompt = `${artStyleDesc}, ${ipInput ? ipInput + ' style, ' : ''}${charInput}, ${actionInput}, ${elemInput}, ${cameraDesc}, ${lightingDesc}, ${bgDesc}, masterpiece, clean anime wallpaper, no text, no watermark`;
-
-try {
-                const llmRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
-                const llmRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-@@ -764,33 +794,31 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-if (llmRes.ok) {
-const data = await llmRes.json();
-const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (candidateText) refinedPrompt = candidateText.trim() + ", clean artwork, no text, no watermark";
-                    if (candidateText) {
-                        refinedPrompt = `${artStyleDesc}, ${candidateText.trim()}, ${cameraDesc}, ${lightingDesc}, no text, no watermark`;
-                    }
-}
-} catch (e) {
-                console.warn("LLM fallback used:", e);
-                console.warn("LLM prompt fallback used:", e);
-}
-
-            // Step 2: Image Generation Engine
-            // Step 2: Image Generation Pipeline
-updateProgress("[2/3] Gemini 正在繪製高解析度手繪質感桌布...", `正套用 ${window.state.selectedRatio} 尺寸`, 70);
-
-let imageBase64 = null;
-let lastErrorMsg = "";
-
-            // Prepare Multimodal Input Parts if Reference Image Exists
-const imageParts = [{ text: refinedPrompt }];
-if (window.state.refImageBase64) {
-const mimeMatch = window.state.refImageBase64.match(/^data:(image\/\w+);base64,/);
-const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-const base64Clean = window.state.refImageBase64.replace(/^data:image\/\w+;base64,/, '');
-imageParts.push({
-                    inlineData: {
-                        mimeType: mimeType,
-                        data: base64Clean
-                    }
-                    inlineData: { mimeType: mimeType, data: base64Clean }
-});
-}
-
-            // Engine Attempt 1: Imagen 4 / Imagen 3 (Official Text-to-Image) - If no ref image
-            // Engine Attempt 1: Imagen 4 / Imagen 3
-if (!window.state.refImageBase64) {
-try {
-const imagenRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`, {
-@@ -815,7 +843,7 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-}
-}
-
-            // Engine Attempt 2: gemini-3.1-flash-image-preview (Supports Img2Img & Ref Image)
-            // Engine Attempt 2: gemini-3.1-flash-image-preview
-if (!imageBase64) {
-try {
-const flash31Res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`, {
-@@ -842,35 +870,7 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-lastErrorMsg = errData.error?.message || `Gemini 3.1 HTTP ${flash31Res.status}`;
-}
-} catch (e) {
-                    console.warn("Gemini 3.1 Flash Image failed, trying 2.5 Flash:", e);
-                }
-            }
-
-            // Engine Attempt 3: gemini-2.5-flash-image-preview
-            if (!imageBase64) {
-                try {
-                    const flash25Res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: imageParts }],
-                            generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
-                        })
-                    });
-
-                    if (flash25Res.ok) {
-                        const flashData = await flash25Res.json();
-                        const part = flashData.candidates?.[0]?.content?.parts?.find(p => p.inlineData || p.inline_data);
-                        const inline = part ? (part.inlineData || part.inline_data) : null;
-                        if (inline && inline.data) {
-                            imageBase64 = `data:${inline.mimeType || 'image/png'};base64,${inline.data}`;
-                        }
-                    } else {
-                        const errData = await flash25Res.json().catch(() => ({}));
-                        lastErrorMsg = errData.error?.message || `Gemini 2.5 HTTP ${flash25Res.status}`;
-                    }
-                } catch (e) {
-                    console.warn("Gemini 2.5 Flash Image failed:", e);
-                    console.warn("Gemini 3.1 Flash Image failed:", e);
-}
-}
-
-@@ -879,11 +879,13 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-throw new Error(lastErrorMsg ? `生成失敗: ${lastErrorMsg}` : "圖片生成失敗或受限於安全過濾，請調整角色描述後重新嘗試。");
-}
-
-                // Step 3: Finish & Display
-updateProgress("[3/3] 生成完成！正在載入高清桌面...", "即將完成", 100);
-
-                const currentUserId = window.state.user ? window.state.user.uid : 'guest';
-
-const newItem = {
-id: 'WP_' + Date.now(),
-                    userId: currentUserId,
-imageUrl: imageBase64,
-aspectRatio: window.state.selectedRatio,
-ip: ipInput,
-@@ -910,7 +912,6 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-}
-};
-
-        // Multi-Turn Second Stage Image Refinement
-window.triggerMultiTurnEdit = async function() {
-const apiKey = window.state.customApiKey || "";
-const editPrompt = document.getElementById('edit-prompt-input').value.trim();
-@@ -1000,9 +1001,6 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-document.getElementById('preview-actions-bar').classList.remove('hidden');
-document.getElementById('second-stage-edit-box').classList.remove('hidden');
-
-            const statusTag = document.getElementById('preview-status-tag');
-            if (statusTag) statusTag.classList.remove('hidden');
-
-const favBtn = document.getElementById('favorite-toggle-btn');
-if (favBtn) {
-favBtn.innerHTML = item.isFavorite ?
-@@ -1011,11 +1009,34 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-}
-}
-
-        window.toggleCurrentFavorite = async function() {
-            if (!window.state.currentWallpaper) return;
-            window.state.currentWallpaper.isFavorite = !window.state.currentWallpaper.isFavorite;
-            await saveToIndexedDB(window.state.currentWallpaper);
-            await saveToCloud(window.state.currentWallpaper);
-            renderCurrentWallpaper(window.state.currentWallpaper);
-            renderGallery();
-        };
-
-        window.toggleFavoriteItem = async function(id) {
-            const item = window.state.history.find(x => x.id === id);
-            if (!item) return;
-            item.isFavorite = !item.isFavorite;
-            await saveToIndexedDB(item);
-            await saveToCloud(item);
-            if (window.state.currentWallpaper && window.state.currentWallpaper.id === id) {
-                renderCurrentWallpaper(item);
-            }
-            renderGallery();
-        };
-
-function renderGallery() {
-const grid = document.getElementById('gallery-grid');
-grid.innerHTML = '';
-
-            let list = window.state.history;
-            const currentUserId = window.state.user ? window.state.user.uid : 'guest';
-            let list = window.state.history.filter(x => !x.userId || x.userId === currentUserId || x.userId === 'guest');
-
-if (window.state.galleryFilter === 'favorites') {
-list = list.filter(x => x.isFavorite);
-}
-@@ -1035,6 +1056,9 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-                           <button onclick="event.stopPropagation(); window.toggleFavoriteItem('${item.id}')" class="w-7 h-7 rounded-full bg-slate-950/70 text-rose-400 flex items-center justify-center text-xs backdrop-blur">
-                               <i class="${item.isFavorite ? 'fa-solid fa-heart text-rose-500' : 'fa-regular fa-heart'}"></i>
-                           </button>
-                            <button onclick="event.stopPropagation(); window.deleteWallpaperItem('${item.id}')" class="w-7 h-7 rounded-full bg-slate-950/70 text-slate-400 hover:text-rose-400 flex items-center justify-center text-xs backdrop-blur">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                       </div>
-                   </div>
-                   <div class="p-2 text-[11px] truncate text-slate-300">
-@@ -1049,33 +1073,43 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-});
-}
-
-        window.switchGalleryTab = function(tab) {
-            window.state.galleryFilter = tab;
-            document.getElementById('tab-btn-all').className = tab === 'all' ? 'px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-medium' : 'px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs font-medium';
-            document.getElementById('tab-btn-favorites').className = tab === 'favorites' ? 'px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-medium' : 'px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs font-medium';
-            renderGallery();
-        };
-        window.deleteWallpaperItem = async function(id) {
-            window.state.history = window.state.history.filter(x => x.id !== id);
-            
-            try {
-                const db = await openDB();
-                const tx = db.transaction('wallpapers', 'readwrite');
-                tx.objectStore('wallpapers').delete(id);
-            } catch(e) { console.warn("IndexedDB Delete Error:", e); }
-
-            if (window.firebaseAuth && window.state.user) {
-                try {
-                    const docRef = window.firebaseMethods.doc(
-                        window.firebaseDb,
-                        'artifacts', 'backgroundgenorater', 'users', window.state.user.uid, 'wallpapers', id
-                    );
-                    await window.firebaseMethods.deleteDoc(docRef);
-                } catch(e) { console.warn("Cloud Delete Error:", e); }
-            }
-
-            if (window.state.currentWallpaper && window.state.currentWallpaper.id === id) {
-                document.getElementById('main-wallpaper-img').classList.add('hidden');
-                document.getElementById('preview-placeholder').classList.remove('hidden');
-                document.getElementById('preview-actions-bar').classList.add('hidden');
-                document.getElementById('second-stage-edit-box').classList.add('hidden');
-                window.state.currentWallpaper = null;
-            }
-
-        window.toggleFavoriteCurrent = function() {
-            if (!window.state.currentWallpaper) return;
-            window.state.currentWallpaper.isFavorite = !window.state.currentWallpaper.isFavorite;
-            saveToIndexedDB(window.state.currentWallpaper);
-            saveToCloud(window.state.currentWallpaper);
-            renderCurrentWallpaper(window.state.currentWallpaper);
-renderGallery();
-};
-
-        window.toggleFavoriteItem = function(id) {
-            const item = window.state.history.find(x => x.id === id);
-            if (item) {
-                item.isFavorite = !item.isFavorite;
-                saveToIndexedDB(item);
-                saveToCloud(item);
-                if (window.state.currentWallpaper && window.state.currentWallpaper.id === id) {
-                    renderCurrentWallpaper(item);
-                }
-                renderGallery();
-            }
-        window.setGalleryFilter = function(filter) {
-            window.state.galleryFilter = filter;
-            document.getElementById('filter-btn-all').className = filter === 'all' ? 
-                'px-2.5 py-1 rounded-md bg-slate-800 text-slate-200 font-medium' : 'px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200';
-            document.getElementById('filter-btn-fav').className = filter === 'favorites' ? 
-                'px-2.5 py-1 rounded-md bg-slate-800 text-slate-200 font-medium' : 'px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200';
-            renderGallery();
-};
-
-window.downloadCurrentWallpaper = function() {
-@@ -1101,7 +1135,6 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-window.toggleOverlay = function(type) {
-const phone = document.getElementById('mockup-phone-layer');
-const desktop = document.getElementById('mockup-desktop-layer');
-
-if (type === 'phone') {
-phone.classList.toggle('hidden');
-desktop.classList.add('hidden');
-@@ -1142,35 +1175,96 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-});
-};
-
-        // Firebase Cloud Persistence (RULE 1 Strict Path Implementation)
-        window.toggleApiKeyModal = function() {
-            document.getElementById('apikey-modal').classList.toggle('hidden');
-        };
-
-        window.saveCustomApiKey = function() {
-            const key = document.getElementById('custom-api-key-input').value.trim();
-            window.state.customApiKey = key;
-            localStorage.setItem('gemini_custom_key', key);
-            document.getElementById('key-btn-text').innerText = key ? "API Key (已設定)" : "API Key 設定";
-            window.toggleApiKeyModal();
-        };
-
-        window.toggleAuthModal = function() {
-            document.getElementById('auth-modal').classList.toggle('hidden');
-        };
-
-        // Initialize local database on load
-        window.addEventListener('DOMContentLoaded', async () => {
-            const cached = await loadFromIndexedDB();
-            window.state.history = cached.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-            renderGallery();
-        });
-    </script>
-
-    <!-- Firebase SDK Implementation Module -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { 
-            getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-            signInAnonymously, onAuthStateChanged, signOut 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { 
-            getFirestore, doc, setDoc, getDocs, collection, deleteDoc 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
+        // Firebase Configuration (User's Project)
         const firebaseConfig = {
             apiKey: "AIzaSyCJVUQ3pCAPlBVOOzFDJQpub3c0xDyn4bc",
             authDomain: "backgroundgenorater.firebaseapp.com",
@@ -1465,79 +556,635 @@ desktop.classList.add('hidden');
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        window.firebaseAuth = auth;
-        window.firebaseDb = db;
-        window.firebaseMethods = { doc, setDoc, getDocs, collection, deleteDoc, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously };
+        // Application State
+        window.state = {
+            selectedRatio: '9:16',
+            refImageBase64: null,
+            currentWallpaper: null,
+            history: [],
+            activeTab: 'history',
+            overlayType: 'none',
+            user: null,
+            customApiKey: localStorage.getItem('gemini_custom_key') || ''
+        };
 
-        onAuthStateChanged(auth, async (user) => {
+        // IndexedDB Fallback Storage for Base64 Images
+        function openIDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open('WallpaperGeneratorDB', 1);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('wallpapers')) {
+                        db.createObjectStore('wallpapers', { keyPath: 'id' });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function saveWallpaperIDB(item) {
+            try {
+                const idb = await openIDB();
+                const tx = idb.transaction('wallpapers', 'readwrite');
+                tx.objectStore('wallpapers').put(item);
+            } catch (e) {
+                console.warn("IDB Save Fallback Failed:", e);
+            }
+        }
+
+        async function loadWallpapersIDB() {
+            try {
+                const idb = await openIDB();
+                const tx = idb.transaction('wallpapers', 'readonly');
+                const req = tx.objectStore('wallpapers').getAll();
+                return new Promise((resolve) => {
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => resolve([]);
+                });
+            } catch (e) {
+                return [];
+            }
+        }
+
+        // Firebase Auth State Listener
+        onAuthStateChanged(auth, (user) => {
             window.state.user = user;
-            const displayName = document.getElementById('user-display-name');
-            
+            const displayNameEl = document.getElementById('user-display-name');
             if (user) {
-                displayName.innerText = user.isAnonymous ? "匿名會員" : (user.email ? user.email.split('@')[0] : "會員已登入");
-                await syncCloudWallpapers();
+                const name = user.email ? user.email.split('@')[0] : '匿名用戶';
+                displayNameEl.innerText = `${name} (已登入)`;
+                syncFromCloud();
             } else {
-                displayName.innerText = "會員登入";
+                displayNameEl.innerText = '登入 / 註冊';
             }
         });
 
-async function saveToCloud(item) {
-            if (!window.firebaseAuth || !window.state.user) return;
+        // Cloud Firestore Sync
+        async function syncFromCloud() {
             if (!window.state.user) return;
-try {
-const userId = window.state.user.uid;
-                const docRef = window.firebaseMethods.doc(
-                    window.firebaseDb,
-                    'artifacts', 'backgroundgenorater', 'users', userId, 'wallpapers', item.id
-                );
-                await window.firebaseMethods.setDoc(docRef, item);
-                item.userId = userId;
-                const docRef = doc(db, 'artifacts', 'backgroundgenorater', 'users', userId, 'wallpapers', item.id);
-                await setDoc(docRef, item);
-} catch (e) {
-console.warn("Cloud Firestore save failed:", e);
-}
-}
-        window.saveToCloud = saveToCloud;
-
-async function syncCloudWallpapers() {
-            if (!window.firebaseAuth || !window.state.user) return;
-            if (!window.state.user) return;
-try {
-const userId = window.state.user.uid;
-                const colRef = window.firebaseMethods.collection(
-                    window.firebaseDb,
-                    'artifacts', 'backgroundgenorater', 'users', userId, 'wallpapers'
-                );
-                const snapshot = await window.firebaseMethods.getDocs(colRef);
-                const colRef = collection(db, 'artifacts', 'backgroundgenorater', 'users', userId, 'wallpapers');
+            try {
+                const uid = window.state.user.uid;
+                const colRef = collection(db, 'artifacts', 'backgroundgenorater', 'users', uid, 'wallpapers');
                 const snapshot = await getDocs(colRef);
-const cloudItems = [];
+                const cloudItems = [];
                 snapshot.forEach(doc => cloudItems.push(doc.data()));
-                snapshot.forEach(d => cloudItems.push(d.data()));
+                
+                if (cloudItems.length > 0) {
+                    window.state.history = cloudItems.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    renderGallery();
+                }
+            } catch (e) {
+                console.warn("Firestore sync failed, using local storage:", e);
+            }
+        }
 
-if (cloudItems.length > 0) {
-                    cloudItems.forEach(item => saveToIndexedDB(item));
-                    for (const item of cloudItems) {
-                        await saveToIndexedDB(item);
-                    }
-const cached = await loadFromIndexedDB();
-window.state.history = cached.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-renderGallery();
-@@ -1180,23 +1274,6 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-}
-}
+        async function saveToCloud(item) {
+            await saveWallpaperIDB(item);
+            if (!window.state.user) return;
+            try {
+                const uid = window.state.user.uid;
+                const docRef = doc(db, 'artifacts', 'backgroundgenorater', 'users', uid, 'wallpapers', item.id);
+                await setDoc(docRef, item);
+            } catch (e) {
+                console.warn("Cloud save failed:", e);
+            }
+        }
 
-        // Modals Toggle
-        window.toggleApiKeyModal = function() {
-            document.getElementById('apikey-modal').classList.toggle('hidden');
+        // --- GLOBAL UI HANDLERS ---
+        window.selectRatio = function(ratio) {
+            window.state.selectedRatio = ratio;
+            document.querySelectorAll('.ratio-btn').forEach(btn => btn.classList.remove('active-ring'));
+            const map = {'9:16': 'ratio-btn-916', '16:9': 'ratio-btn-169', '4:3': 'ratio-btn-43'};
+            document.getElementById(map[ratio])?.classList.add('active-ring');
         };
 
-        window.saveCustomApiKey = function() {
-            const key = document.getElementById('custom-api-key-input').value.trim();
+        window.setIP = function(ip, char) {
+            document.getElementById('ip-input').value = ip;
+            document.getElementById('character-input').value = char;
+        };
+
+        window.handleRefImageUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // Front-end Canvas compression max 1024px
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    const maxDim = 1024;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+                    }
+                    canvas.width = w; canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+                    window.state.refImageBase64 = compressedBase64;
+                    document.getElementById('ref-image-placeholder').classList.add('hidden');
+                    document.getElementById('ref-image-preview-container').classList.remove('hidden');
+                    document.getElementById('ref-image-preview').src = compressedBase64;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.removeRefImage = function(e) {
+            if(e) e.stopPropagation();
+            window.state.refImageBase64 = null;
+            document.getElementById('ref-image-input').value = '';
+            document.getElementById('ref-image-placeholder').classList.remove('hidden');
+            document.getElementById('ref-image-preview-container').classList.add('hidden');
+        };
+
+        window.setOverlay = function(type) {
+            window.state.overlayType = type;
+            document.getElementById('mockup-mobile-overlay').classList.add('hidden');
+            document.getElementById('mockup-desktop-overlay').classList.add('hidden');
+            
+            document.getElementById('overlay-btn-none').className = 'px-2.5 py-1 rounded-lg font-medium text-slate-400';
+            document.getElementById('overlay-btn-mobile').className = 'px-2.5 py-1 rounded-lg font-medium text-slate-400';
+            document.getElementById('overlay-btn-desktop').className = 'px-2.5 py-1 rounded-lg font-medium text-slate-400';
+
+            if (type === 'mobile') {
+                document.getElementById('mockup-mobile-overlay').classList.remove('hidden');
+                document.getElementById('overlay-btn-mobile').className = 'px-2.5 py-1 rounded-lg font-medium text-slate-200 bg-slate-800 shadow';
+            } else if (type === 'desktop') {
+                document.getElementById('mockup-desktop-overlay').classList.remove('hidden');
+                document.getElementById('overlay-btn-desktop').className = 'px-2.5 py-1 rounded-lg font-medium text-slate-200 bg-slate-800 shadow';
+            } else {
+                document.getElementById('overlay-btn-none').className = 'px-2.5 py-1 rounded-lg font-medium text-slate-200 bg-slate-800 shadow';
+            }
+        };
+
+        window.triggerRandomizer = function() {
+            // 成套相容的動漫靈感卡包，避免原作與角色不對應的問題
+            const inspirationCards = [
+                {
+                    ip: '葬送的芙莉蓮',
+                    char: '芙莉蓮 (銀髮雙馬尾, 精靈耳, 白金邊魔法袍)',
+                    action: '坐在靜謐月光下的古堡窗前閱讀魔導書',
+                    elements: '飄浮的藍色魔法粒子與晨光折射',
+                    artstyle: 'key_visual',
+                    camera: 'rule_of_thirds',
+                    lighting: 'golden_hour',
+                    bg: 'fantasy_magic'
+                },
+                {
+                    ip: '原神',
+                    char: '雷電將軍 (紫髮單馬尾, 紫色和服, 象徵雷電的巴重巴紋)',
+                    action: '手持薙草之稻光站在雷暴彌漫的天守閣前',
+                    elements: '周圍環繞紫色的雷電交錯光芒與飄落的櫻花瓣',
+                    artstyle: 'cell_shading',
+                    camera: 'diagonal',
+                    lighting: 'neon_cyber',
+                    bg: 'nature'
+                },
+                {
+                    ip: '崩壞：星穹鐵道',
+                    char: '流螢 (銀髮綠瞳, 飄逸綠色領結與黑綠裙裝)',
+                    action: '站在繁星閃爍的深空艦艇甲板上微笑注視遠方',
+                    elements: '螢火蟲般的藍綠色自發光粒子與星雲光軌',
+                    artstyle: 'key_visual',
+                    camera: 'center_framed',
+                    lighting: 'bioluminescent',
+                    bg: 'deep_space'
+                },
+                {
+                    ip: '絕區零',
+                    char: '艾蓮·喬 (黑色鯊魚尾, 雙馬尾, 女僕制服與紅絲帶)',
+                    action: '在雨後賽博霓虹街頭一手拿著棒棒糖一手搭在腰間',
+                    elements: '雨水折射的街頭霓虹光斑與紅綠霓虹招牌',
+                    artstyle: 'cyber_neon',
+                    camera: 'dutch_angle',
+                    lighting: 'neon_cyber',
+                    bg: 'cyber_city'
+                },
+                {
+                    ip: 'VOCALOID',
+                    char: '初音未來 (蒼綠色雙馬尾, 經典Vocaloid黑灰制服與耳機)',
+                    action: '在充滿未來感的全息舞台上揚手歌唱',
+                    elements: '飛揚的數字音符、全息光條與炫彩舞台燈光',
+                    artstyle: 'painterly',
+                    camera: 'diagonal',
+                    lighting: 'dramatic',
+                    bg: 'minimalist'
+                },
+                {
+                    ip: 'Fate/Grand Order',
+                    char: '阿爾托莉亞·潘德拉貢 (金髮盤髮, 藍金騎士鎧甲, 誓約勝利之劍)',
+                    action: '站在荒野之丘上將金色聖劍刺入地面施展光芒',
+                    elements: '劍身噴湧而出的黃金聖光粒子與飄揚的藍色披風',
+                    artstyle: 'key_visual',
+                    camera: 'rule_of_thirds',
+                    lighting: 'crepuscular',
+                    bg: 'nature'
+                }
+            ];
+
+            const item = inspirationCards[Math.floor(Math.random() * inspirationCards.length)];
+            
+            document.getElementById('ip-input').value = item.ip;
+            document.getElementById('character-input').value = item.char;
+            document.getElementById('action-input').value = item.action;
+            document.getElementById('elem-input').value = item.elements;
+            
+            if (document.getElementById('select-artstyle')) document.getElementById('select-artstyle').value = item.artstyle;
+            if (document.getElementById('select-camera')) document.getElementById('select-camera').value = item.camera;
+            if (document.getElementById('select-lighting')) document.getElementById('select-lighting').value = item.lighting;
+            if (document.getElementById('select-bg')) document.getElementById('select-bg').value = item.bg;
+        };
+
+        // --- GEMINI API AI GENERATION ENGINE ---
+        window.triggerGeneration = async function() {
+            const apiKey = window.state.customApiKey || "";
+            const ipInput = document.getElementById('ip-input').value.trim();
+            const charInput = document.getElementById('character-input').value.trim();
+            const actionInput = document.getElementById('action-input').value.trim();
+            const elemInput = document.getElementById('elem-input').value.trim();
+
+            if (!ipInput && !charInput) {
+                alert("請至少輸入「原作 IP」或「角色名稱與外貌」！");
+                return;
+            }
+
+            // UI Loading State
+            document.getElementById('progress-container').classList.remove('hidden');
+            document.getElementById('generate-submit-btn').disabled = true;
+            document.getElementById('generate-submit-btn').classList.add('opacity-50');
+
+            updateProgress("[1/3] Gemini 正在解構角色外貌並重構英文 Prompt...", "解析中...", 30);
+
+            // Step 1: Prompt Refinement via Gemini LLM
+            const artStyleText = document.getElementById('select-artstyle').value;
+            const cameraText = document.getElementById('select-camera').value;
+            const lightingText = document.getElementById('select-lighting').value;
+            const bgText = document.getElementById('select-bg').value;
+
+            const systemInstruction = `You are a world-class anime art director and prompt engineer.
+Deconstruct the user's input character and IP into accurate English official visual traits (hair color, eye color, outfit, accessories).
+Formulate a clean, highly detailed, masterpieces English anime wallpaper prompt.
+STRICT RULE: Absolutely NO text, NO letters, NO signatures, NO watermarks, NO logos in the final art.`;
+
+            const userPromptText = `Anime/IP: ${ipInput}, Character: ${charInput}, Action: ${actionInput}, Elements: ${elemInput}, Art Medium: ${artStyleText}, Camera: ${cameraText}, Lighting: ${lightingText}, Background: ${bgText}. Aspect ratio is ${window.state.selectedRatio}.`;
+
+            let refinedPrompt = `${ipInput ? ipInput + ' style, ' : ''}${charInput}, ${actionInput}, ${elemInput}, masterpiece, clean anime illustration, no text, no watermark`;
+
+            try {
+                const llmRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: userPromptText }] }],
+                        systemInstruction: { parts: [{ text: systemInstruction }] }
+                    })
+                });
+                if (llmRes.ok) {
+                    const data = await llmRes.json();
+                    const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (candidateText) refinedPrompt = candidateText.trim() + ", clean artwork, no text, no watermark";
+                }
+            } catch (e) {
+                console.warn("LLM fallback used:", e);
+            }
+
+            // Step 2: Image Generation via Gemini 3.1 Flash Image Engine with Fallbacks
+            updateProgress("[2/3] Gemini 正在繪製高解析度手繪質感桌布...", `正套用 ${window.state.selectedRatio} 尺寸`, 70);
+
+            try {
+                let imageBase64 = null;
+                const imageParts = [{ text: refinedPrompt }];
+                
+                if (window.state.refImageBase64) {
+                    const mimeMatch = window.state.refImageBase64.match(/^data:(image\/\w+);base64,/);
+                    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+                    const base64Clean = window.state.refImageBase64.replace(/^data:image\/\w+;base64,/, '');
+                    imageParts.push({
+                        inlineData: {
+                            mimeType: mimeType,
+                            data: base64Clean
+                        }
+                    });
+                }
+
+                // Primary Engine: gemini-3.1-flash-image-preview
+                const imgRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ role: 'user', parts: imageParts }],
+                        generationConfig: {
+                            responseModalities: ['IMAGE'],
+                            imageConfig: { aspectRatio: window.state.selectedRatio }
+                        }
+                    })
+                });
+
+                if (imgRes.ok) {
+                    const imgData = await imgRes.json();
+                    const part = imgData.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                    if (part && part.inlineData) {
+                        imageBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                    }
+                } else if (imgRes.status === 401) {
+                    window.toggleApiKeyModal();
+                    throw new Error("401 Unauthorized: API Key 無效，請點擊右上角「API Key 設定」確認。");
+                }
+
+                // Fallback Engine 1: imagen-4.0-generate-001
+                if (!imageBase64) {
+                    console.log("Attempting fallback engine 1 (imagen-4.0-generate-001)...");
+                    try {
+                        const imagenRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                instances: [{ prompt: refinedPrompt }],
+                                parameters: { sampleCount: 1, aspectRatio: window.state.selectedRatio }
+                            })
+                        });
+                        if (imagenRes.ok) {
+                            const imagenData = await imagenRes.json();
+                            const bytes = imagenData.predictions?.[0]?.bytesBase64Encoded;
+                            if (bytes) {
+                                imageBase64 = `data:image/png;base64,${bytes}`;
+                            }
+                        }
+                    } catch (fbErr1) {
+                        console.warn("Imagen 4 fallback error:", fbErr1);
+                    }
+                }
+
+                // Fallback Engine 2: gemini-2.5-flash-image-preview
+                if (!imageBase64) {
+                    console.log("Attempting fallback engine 2 (gemini-2.5-flash-image-preview)...");
+                    try {
+                        const flashRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: imageParts }],
+                                generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
+                            })
+                        });
+                        if (flashRes.ok) {
+                            const flashData = await flashRes.json();
+                            const part = flashData.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                            if (part && part.inlineData) {
+                                imageBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                            }
+                        }
+                    } catch (fbErr2) {
+                        console.warn("Gemini 2.5 flash image fallback error:", fbErr2);
+                    }
+                }
+
+                if (!imageBase64) {
+                    throw new Error("圖片生成失敗或受限於安全過濾，請調整角色描述或更改關鍵字後重新嘗試。");
+                }
+
+                // Step 3: Finish & Display
+                updateProgress("[3/3] 生成完成！正在載入高清桌面...", "即將完成", 100);
+
+                const newItem = {
+                    id: 'WP_' + Date.now(),
+                    imageUrl: imageBase64,
+                    aspectRatio: window.state.selectedRatio,
+                    ip: ipInput,
+                    character: charInput,
+                    prompt: refinedPrompt,
+                    isFavorite: false,
+                    createdAt: new Date().toISOString()
+                };
+
+                window.state.currentWallpaper = newItem;
+                window.state.history.unshift(newItem);
+                await saveToCloud(newItem);
+
+                renderCurrentWallpaper(newItem);
+                renderGallery();
+
+            } catch (err) {
+                alert(err.message || "生成發生錯誤，請稍後重試。");
+            } finally {
+                document.getElementById('progress-container').classList.add('hidden');
+                document.getElementById('generate-submit-btn').disabled = false;
+                document.getElementById('generate-submit-btn').classList.remove('opacity-50');
+            }
+        };
+
+        // Multi-Turn Second Stage Image Refinement
+        window.triggerMultiTurnEdit = async function() {
+            const editPrompt = document.getElementById('edit-prompt-input').value.trim();
+            if (!editPrompt || !window.state.currentWallpaper) {
+                alert("請輸入二次修改指示！");
+                return;
+            }
+
+            const apiKey = window.state.customApiKey || "";
+            const currentImg = window.state.currentWallpaper.imageUrl;
+            const mimeMatch = currentImg.match(/^data:(image\/\w+);base64,/);
+            const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+            const base64Clean = currentImg.replace(/^data:image\/\w+;base64,/, '');
+
+            document.getElementById('edit-submit-btn').disabled = true;
+            document.getElementById('edit-submit-btn').innerText = "修圖中...";
+
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [
+                            {
+                                role: 'user',
+                                parts: [
+                                    { text: `Modify the existing image: ${editPrompt}. Maintain character identity and art style, no text.` },
+                                    { inlineData: { mimeType: mimeType, data: base64Clean } }
+                                ]
+                            }
+                        ],
+                        generationConfig: {
+                            responseModalities: ['IMAGE'],
+                            imageConfig: { aspectRatio: window.state.currentWallpaper.aspectRatio }
+                        }
+                    })
+                });
+
+                const data = await res.json();
+                const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+
+                if (part && part.inlineData) {
+                    const newImageBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                    window.state.currentWallpaper.imageUrl = newImageBase64;
+                    document.getElementById('preview-image').src = newImageBase64;
+                    await saveToCloud(window.state.currentWallpaper);
+                    renderGallery();
+                    document.getElementById('edit-prompt-input').value = '';
+                } else {
+                    const errMsg = data.error?.message || "二段微調失敗，請換個語氣或描述重試。";
+                    alert(errMsg);
+                }
+            } catch (e) {
+                alert("修圖過程發生錯誤: " + e.message);
+            } finally {
+                document.getElementById('edit-submit-btn').disabled = false;
+                document.getElementById('edit-submit-btn').innerText = "套用二段修改";
+            }
+        };
+
+        function updateProgress(step, detail, pct) {
+            document.getElementById('progress-step-text').innerText = step;
+            document.getElementById('progress-detail-text').innerText = detail;
+            document.getElementById('progress-bar').style.width = pct + '%';
+        }
+
+        function renderCurrentWallpaper(item) {
+            document.getElementById('preview-empty-state').classList.add('hidden');
+            const imgEl = document.getElementById('preview-image');
+            imgEl.src = item.imageUrl;
+            imgEl.classList.remove('hidden');
+
+            document.getElementById('preview-actions').classList.remove('hidden');
+            document.getElementById('multi-turn-container').classList.remove('hidden');
+            
+            const tag = document.getElementById('preview-status-tag');
+            if(tag) tag.classList.remove('hidden');
+
+            updateFavBtnUI(item.isFavorite);
+        }
+
+        function updateFavBtnUI(isFav) {
+            const btn = document.getElementById('favorite-toggle-btn');
+            if (isFav) {
+                btn.className = "px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-md shadow-rose-900/30";
+                btn.innerHTML = `<i class="fa-solid fa-heart"></i> 已收藏`;
+            } else {
+                btn.className = "px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-semibold transition flex items-center gap-1.5";
+                btn.innerHTML = `<i class="fa-regular fa-heart"></i> 加入收藏`;
+            }
+        }
+
+        window.toggleFavoriteCurrent = async function() {
+            if (!window.state.currentWallpaper) return;
+            window.state.currentWallpaper.isFavorite = !window.state.currentWallpaper.isFavorite;
+            updateFavBtnUI(window.state.currentWallpaper.isFavorite);
+            await saveToCloud(window.state.currentWallpaper);
+            renderGallery();
+        };
+
+        window.renderGallery = function() {
+            const grid = document.getElementById('gallery-grid');
+            grid.innerHTML = '';
+
+            const list = window.state.activeTab === 'favorites' 
+                ? window.state.history.filter(x => x.isFavorite)
+                : window.state.history;
+
+            if (list.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-500">尚無${window.state.activeTab === 'favorites' ? '收藏' : '歷史'}紀錄</div>`;
+                return;
+            }
+
+            list.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "group relative rounded-xl bg-slate-900 border border-slate-800 overflow-hidden cursor-pointer hover:border-violet-500 transition shadow-lg";
+                card.onclick = () => {
+                    window.state.currentWallpaper = item;
+                    renderCurrentWallpaper(item);
+                    window.scrollTo({ top: document.getElementById('preview-viewport').offsetTop - 100, behavior: 'smooth' });
+                };
+
+                card.innerHTML = `
+                    <div class="aspect-[9/16] w-full bg-slate-950 flex items-center justify-center overflow-hidden">
+                        <img src="${item.imageUrl}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                    </div>
+                    <div class="p-2 space-y-1 bg-slate-900/90 text-[11px]">
+                        <div class="font-bold text-slate-200 truncate">${item.character || item.ip || '未命名角色'}</div>
+                        <div class="text-slate-400 text-[10px] flex justify-between">
+                            <span>${item.aspectRatio}</span>
+                            <span>${new Date(item.createdAt).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        };
+
+        window.switchTab = function(tab) {
+            window.state.activeTab = tab;
+            document.getElementById('tab-btn-history').className = tab === 'history' ? "px-4 py-2 rounded-xl text-xs font-bold transition bg-violet-600 text-white shadow" : "px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-400 hover:text-white";
+            document.getElementById('tab-btn-favorites').className = tab === 'favorites' ? "px-4 py-2 rounded-xl text-xs font-bold transition bg-violet-600 text-white shadow" : "px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-400 hover:text-white";
+            renderGallery();
+        };
+
+        window.downloadCurrentWallpaper = function() {
+            if (!window.state.currentWallpaper) return;
+            const a = document.createElement('a');
+            a.href = window.state.currentWallpaper.imageUrl;
+            a.download = `Wallpaper_${window.state.currentWallpaper.character || 'character'}_${Date.now()}.png`;
+            a.click();
+        };
+
+        window.copyPrompt = function() {
+            if (!window.state.currentWallpaper) return;
+            navigator.clipboard.writeText(window.state.currentWallpaper.prompt);
+            alert("Prompt 已成功複製至剪貼簿！");
+        };
+
+        window.openLightbox = function() {
+            if (!window.state.currentWallpaper) return;
+            document.getElementById('lightbox-image').src = window.state.currentWallpaper.imageUrl;
+            document.getElementById('lightbox-modal').classList.remove('hidden');
+        };
+
+        window.closeLightbox = function() {
+            document.getElementById('lightbox-modal').classList.add('hidden');
+        };
+
+        window.exportFavoritesZip = async function() {
+            const favs = window.state.history.filter(x => x.isFavorite);
+            if (favs.length === 0) {
+                alert("收藏夾中尚無圖片可匯出！");
+                return;
+            }
+
+            const zip = new JSZip();
+            favs.forEach((item, idx) => {
+                const base64Data = item.imageUrl.replace(/^data:image\/\w+;base64,/, '');
+                zip.file(`wallpaper_${idx + 1}_${item.character || 'fav'}.png`, base64Data, { base64: true });
+            });
+
+            const content = await zip.generateAsync({ type: "blob" });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(content);
+            a.download = `Wallpaper_Favorites_${Date.now()}.zip`;
+            a.click();
+        };
+
+        window.clearHistoryPrompt = function() {
+            if (confirm("確定要清空本機所有生成歷史紀錄嗎？")) {
+                window.state.history = [];
+                renderGallery();
+            }
+        };
+
+        // --- AUTH & API KEY MODALS ---
+        window.toggleApiKeyModal = function() {
+            document.getElementById('api-key-modal').classList.toggle('hidden');
+        };
+
+        window.saveApiKey = function() {
+            const key = document.getElementById('api-key-input').value.trim();
             window.state.customApiKey = key;
             localStorage.setItem('gemini_custom_key', key);
-            document.getElementById('key-btn-text').innerText = key ? "API Key (已設定)" : "API Key 設定";
+            document.getElementById('api-key-btn-text').innerText = key ? "API Key (已設定)" : "API Key 設定";
             window.toggleApiKeyModal();
         };
 
@@ -1545,33 +1192,41 @@ renderGallery();
             document.getElementById('auth-modal').classList.toggle('hidden');
         };
 
-window.handleEmailAuth = async function(type) {
-const email = document.getElementById('auth-email').value.trim();
-const password = document.getElementById('auth-password').value.trim();
-@@ -1208,9 +1285,9 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
+        window.handleEmailAuth = async function() {
+            const email = document.getElementById('auth-email-input').value;
+            const pass = document.getElementById('auth-password-input').value;
+            try {
+                if (window.authMode === 'register') {
+                    await createUserWithEmailAndPassword(auth, email, pass);
+                } else {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                }
+                window.toggleAuthModal();
+            } catch (e) {
+                alert("認證失敗: " + e.message);
+            }
+        };
 
-try {
-if (type === 'login') {
-                    await window.firebaseMethods.signInWithEmailAndPassword(window.firebaseAuth, email, password);
-                    await signInWithEmailAndPassword(auth, email, password);
-} else {
-                    await window.firebaseMethods.createUserWithEmailAndPassword(window.firebaseAuth, email, password);
-                    await createUserWithEmailAndPassword(auth, email, password);
-}
-window.toggleAuthModal();
-} catch (err) {
-@@ -1220,12 +1297,12 @@ <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-
-window.handleAnonymousAuth = async function() {
-try {
-                await window.firebaseMethods.signInAnonymously(window.firebaseAuth);
+        window.handleAnonymousLogin = async function() {
+            try {
                 await signInAnonymously(auth);
-window.toggleAuthModal();
-} catch (err) {
-alert("匿名登入失敗");
-}
-};
-</script>
+                window.toggleAuthModal();
+            } catch (e) {
+                alert("試用登入失敗: " + e.message);
+            }
+        };
+
+        // Load local IndexedDB History on startup
+        window.onload = async function() {
+            const localWallpapers = await loadWallpapersIDB();
+            if (localWallpapers.length > 0 && window.state.history.length === 0) {
+                window.state.history = localWallpapers.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                renderGallery();
+            }
+            if (window.state.customApiKey) {
+                document.getElementById('api-key-btn-text').innerText = "API Key (已設定)";
+            }
+        };
+    </script>
 </body>
-</html>
 </html>
